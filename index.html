@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIBECODED DelvUI Config Scaler</title>
+    <!-- Pako library for decompression -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f0f10;
+            --card: #161618;
+            --border: #2d2d30;
+            --text: #d4d4d4;
+            --text-dim: #888;
+            --accent: #4782ff;
+            --success: #28a745;
+            --warning: #ff9d00;
+            --code-green: #00ff41;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
+            color: #fff;
+        }
+
+        .description {
+            color: var(--text-dim);
+            margin-top: 8px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .step-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+
+        .step-number {
+            background: var(--accent);
+            color: white;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 0.7rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            background: #000;
+            border: 1px solid var(--border);
+            color: var(--code-green);
+            font-family: 'Consolas', 'Monaco', monospace;
+            padding: 12px;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .res-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto 1fr;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        select, input {
+            background: #252526;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .multiplier-box {
+            text-align: center;
+        }
+
+        .multiplier-val {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--warning);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 6px;
+            border: none;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.1s, filter 0.2s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        #processBtn {
+            background: var(--accent);
+            color: white;
+        }
+
+        #copyBtn {
+            background: var(--success);
+            color: white;
+            margin-top: 12px;
+        }
+
+        .arrow {
+            font-size: 24px;
+            color: var(--border);
+            padding-top: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>VIBECODED DelvUI Config Scaler</h1>
+            <p class="description">Upscale or downscale your UI profiles between resolutions</p>
+        </header>
+        
+        <!-- STEP 1 -->
+        <div class="card">
+            <div class="step-label">
+                <span class="step-number">1</span> Input Config
+            </div>
+            <textarea id="inputStr" placeholder="Paste your DelvUI export string here (starting with |||)..."></textarea>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="card">
+            <div class="step-label">
+                <span class="step-number">2</span> Scaling Settings
+            </div>
+            <div class="res-grid">
+                <div class="input-group">
+                    <label>Original Resolution</label>
+                    <select id="baseRes">
+                        <option value="1080">1080p (FHD)</option>
+                        <option value="1440" selected>1440p (QHD)</option>
+                        <option value="2160">2160p (4K)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Target Resolution</label>
+                    <select id="targetRes">
+                        <option value="1080">1080p (FHD)</option>
+                        <option value="1440">1440p (QHD)</option>
+                        <option value="2160" selected>2160p (4K)</option>
+                    </select>
+                </div>
+                <div class="arrow">→</div>
+                <div class="input-group multiplier-box">
+                    <label>Multiplier</label>
+                    <input type="number" id="manualScale" step="0.001" style="text-align: center; color: var(--warning); font-weight: bold;">
+                </div>
+            </div>
+            <button id="processBtn">Apply Scaling</button>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="card">
+            <div class="step-label">
+                <span class="step-number">3</span> Result
+            </div>
+            <textarea id="outputStr" readonly placeholder="Your scaled config will appear here..."></textarea>
+            <button id="copyBtn">Copy to Clipboard</button>
+        </div>
+
+        <div class="footer">
+            DelvUI Scaler Tool • Built for FFXIV
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
