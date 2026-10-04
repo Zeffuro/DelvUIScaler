@@ -46,9 +46,12 @@ class ProfilePreview {
     }
     grid() { return PreviewGrid.settings(document.getElementById('gridX').value, document.getElementById('gridY').value) }
     scaleSettings() {
-        return Object.fromEntries(['baseRes', 'targetRes', 'manualScale'].map(id => [id, document.getElementById(id).value]))
+        return Object.fromEntries(['baseRes', 'targetRes', 'baseWidth', 'baseHeight', 'targetWidth', 'targetHeight', 'manualScale'].map(id => [id, document.getElementById(id).value]))
     }
-    exportProfile() { return ConfigCodec.scaled(this.profile, Number(document.getElementById('manualScale').value)) }
+    exportProfile() {
+        if (!ScreenResolutions.read('baseRes') || !ScreenResolutions.read('targetRes')) throw new Error('Use whole-pixel sizes from 1 to 32768.')
+        return ConfigCodec.scaled(this.profile, Number(document.getElementById('manualScale').value))
+    }
     edited() {
         this.render()
         document.dispatchEvent(new Event('profileedit'))
@@ -134,19 +137,22 @@ class ProfilePreview {
     render() {
         this.motion = null
         const get = id => document.getElementById(id)
-        const height = Number(get(this.view === 'original' ? 'baseRes' : 'targetRes').value)
-        const width = Math.round(height * Number(get('aspectRatio').value))
+        const screen = ScreenResolutions.read(this.view === 'original' ? 'baseRes' : 'targetRes')
+        this.screenSizes ||= {}
+        const { width, height, aspect } = screen || this.screenSizes[this.view] || { width: 1920, height: 1080, aspect: 16 / 9 }
+        if (screen) this.screenSizes[this.view] = screen
         const factor = Number(get('manualScale').value), validScale = Number.isFinite(factor) && factor > 0
         let profile = this.profile
         if (this.view === 'scaled') profile = profile && validScale ? ConfigCodec.scaled(profile, factor) : null
+        if (!screen) profile = null
         this.renderedProfile = profile
         for (const view of ['original', 'scaled']) {
             const button = get(view === 'original' ? 'viewOriginal' : 'viewScaled')
             button.classList.toggle('active', view === this.view)
             button.setAttribute('aria-pressed', String(view === this.view))
         }
-        get('screenSize').textContent = `${width} × ${height} · ${this.view === 'original' ? 'source' : 'scaled'}`
-        const viewport = this.resolutions.viewport(width, height, Number(get('aspectRatio').value))
+        get('screenSize').textContent = screen ? `${width} × ${height} · ${this.view === 'original' ? 'source' : 'scaled'}` : 'Invalid resolution'
+        const viewport = this.resolutions.viewport(width, height, aspect)
         get('screenFrame').style.aspectRatio = `${viewport.width} / ${viewport.height}`
         this.drawing.background(width, height, get('showGrid').checked, this.grid(), viewport)
         this.model = profile ? PreviewModel.build(profile, width, height, this.options()) : { elements: [], skipped: [] }
@@ -169,7 +175,7 @@ class ProfilePreview {
         this.alignment.draw()
         this.resolutions.draw()
         get('previewEmpty').hidden = Boolean(profile)
-        this.updateDetails(Boolean(profile))
+        this.updateDetails(Boolean(profile), screen ? undefined : 'Use whole-pixel sizes from 1 to 32768.')
         get('coverageSummary').textContent = `Missing settings (${this.model.skipped.length})`
         get('coverageNotes').hidden = !this.model.skipped.length
         const list = get('coverageList')
@@ -180,12 +186,12 @@ class ProfilePreview {
         this.updateInspector()
         if (this.interactions.drag) this.beginMotion()
     }
-    updateDetails(hasProfile) {
+    updateDetails(hasProfile, error = 'Enter a positive multiplier to preview scaling.') {
         const selected = this.selected(), get = id => document.getElementById(id)
         const details = selected ?
             `${selected.name} · ${this.round(selected.width)} × ${this.round(selected.height)} px${selected.font ? ` · ${selected.font.family} ${this.round(selected.fontSize)} px` : ''}${selected.offscreen ? ' · outside screen' : ''}` : 'Select an element.'
         const elements = this.model.elements.filter(e => e.kind !== 'group'), offscreen = elements.filter(e => e.offscreen).length
-        const summary = this.profile && !hasProfile ? 'Enter a positive multiplier to preview scaling.' : hasProfile ?
+        const summary = this.profile && !hasProfile ? error : hasProfile ?
             `${elements.length} elements${offscreen ? ` · ${offscreen} outside screen` : ''}` : ''
         if (get('elementDetails').textContent !== details) get('elementDetails').textContent = details
         if (get('previewSummary').textContent !== summary) get('previewSummary').textContent = summary

@@ -14,7 +14,7 @@
         const zoom = Number(value.previewZoom)
         if (Number.isFinite(zoom)) result.previewZoom = Math.round(Math.max(100, Math.min(800, zoom)))
         for (const [key, values] of [['moveAxis', ['free', 'x', 'y']], ['focusMode', ['all', 'dim', 'only']],
-            ['aspectRatio', ['1.7777777777777777', '2.3333333333333335', '3.5555555555555554']]]) {
+            ['aspectRatio', ['1.7777777777777777', '1.6', '2.3333333333333335', '3.5555555555555554']]]) {
             if (values.includes(value[key])) result[key] = value[key]
         }
         return result

@@ -16,6 +16,7 @@ test('preview preferences validate values and discard profile data', () => {
     assert.equal(saved.moveAxis, 'y')
     assert.equal(saved.focusMode, 'only')
     assert.equal(saved.aspectRatio, '2.3333333333333335')
+    assert.equal(normalize({ aspectRatio: '1.6' }).aspectRatio, '1.6')
     for (const key of ['inputStr', 'manualScale', 'editPositions', 'dummyName']) assert.equal(Object.hasOwn(saved, key), false)
 })
 

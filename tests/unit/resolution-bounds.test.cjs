@@ -32,3 +32,11 @@ test('outside counts include partial clipping and exclude group containers and r
     assert.equal(outside([{ ...element, x: 319.995 }], screen), 0)
     assert.equal(outside([{ ...element, x: 319 }, { ...element, y: 181 }, { ...element, kind: 'group', x: 0 }], screen), 2)
 })
+
+test('custom sizes add the native rectangle and use their own aspect for comparison bounds', () => {
+    const bounds = layout(2560, 1600, 16 / 10)
+    assert.deepEqual(bounds.screens.map(screen => screen.width), [1728, 2304, 3456, 2560])
+    assert.deepEqual(bounds.screens.at(-1), { width: 2560, height: 1600, x: 0, y: 0, name: 'Custom', color: '#89baff' })
+    assert.deepEqual(bounds.viewport, { x: -448, y: -280, width: 3456, height: 2160 })
+    assert.equal(layout(5120, 2880, 16 / 9).viewport.height, 2880)
+})

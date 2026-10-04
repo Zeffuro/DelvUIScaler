@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const get = id => document.getElementById(id)
+    const resolutions = new ScreenResolutions()
     const preview = new ProfilePreview()
     new PreviewPreferences(preview)
     const files = new ProfileFiles({
@@ -26,12 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
         preview.setProfile(null)
         invalidateOutput()
     }
-    function updateFactor() {
-        get('manualScale').value = (Number(get('targetRes').value) / Number(get('baseRes').value)).toFixed(3)
-        settingsChanged(true)
+    function updateFactor(record = true) {
+        const base = ScreenResolutions.read('baseRes'), target = ScreenResolutions.read('targetRes')
+        const factor = base && target ? target.height / base.height : null
+        get('manualScale').value = factor ? factor.toFixed(factor < .001 ? 6 : 3) : ''
+        settingsChanged(record)
     }
     function settingsChanged(record = false) {
         preview.interactions.end()
+        resolutions.refresh()
         if (record) preview.editor?.setSettings(preview.scaleSettings())
         invalidateOutput()
         preview.render()
@@ -109,17 +113,24 @@ document.addEventListener('DOMContentLoaded', () => {
             status('outputStatus', copied ? 'Copied to clipboard.' : 'The export is selected. Press Ctrl+C (⌘C on Mac) to copy.', copied ? 'success' : '')
         }
     })
-    get('baseRes').addEventListener('change', updateFactor)
-    get('targetRes').addEventListener('change', updateFactor)
+    for (const id of ['baseRes', 'targetRes']) get(id).addEventListener('change', () => {
+        resolutions.select(id)
+        updateFactor()
+    })
+    for (const id of ['baseWidth', 'baseHeight', 'targetWidth', 'targetHeight']) {
+        get(id).addEventListener('input', () => updateFactor(false))
+        get(id).addEventListener('change', () => updateFactor())
+    }
     get('manualScale').addEventListener('input', () => settingsChanged())
     get('manualScale').addEventListener('change', () => settingsChanged(true))
-    get('aspectRatio').addEventListener('change', () => preview.render())
+    get('aspectRatio').addEventListener('change', () => { resolutions.refresh(); preview.render() })
     document.addEventListener('profileedit', invalidateOutput)
     function history(direction) {
         preview.interactions.end()
         preview.editor?.setSettings(preview.scaleSettings())
         if (!preview.editor?.[direction]()) return
         for (const [id, value] of Object.entries(preview.editor.settings)) get(id).value = value
+        resolutions.refresh()
         preview.edited()
     }
     get('undoEdit').addEventListener('click', () => history('undo'))

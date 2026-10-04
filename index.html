@@ -23,6 +23,7 @@
     <script defer src="src/ui/interactions.js"></script>
     <script defer src="src/ui/font-panel.js"></script>
     <script defer src="src/ui/resolution-bounds.js"></script>
+    <script defer src="src/ui/screen-resolutions.js"></script>
     <script defer src="src/ui/preview.js"></script>
     <script defer src="src/ui/preferences.js"></script>
     <script defer src="src/ui/profile-files.js"></script>
@@ -50,13 +51,18 @@
                 <section class="card">
                     <h2><span class="step-number">2</span> Scale settings</h2>
                     <div class="res-grid">
-                        <div class="input-group"><label for="baseRes">Original resolution</label><select id="baseRes"><option value="1080">1080p</option><option value="1440" selected>1440p</option><option value="2160">2160p / 4K</option></select></div>
-                        <div class="input-group"><label for="targetRes">Target resolution</label><select id="targetRes"><option value="1080">1080p</option><option value="1440">1440p</option><option value="2160" selected>2160p / 4K</option></select></div>
+                        <div class="input-group"><label for="baseRes">Original resolution</label><select id="baseRes"><option value="1080">1080p</option><option value="1440" selected>1440p</option><option value="2160">2160p / 4K</option><option value="custom">Custom</option></select>
+                            <div id="baseCustom" class="custom-resolution" hidden><div class="dimension-fields"><label for="baseWidth">Width<input id="baseWidth" type="number" min="1" max="32768" step="1" value="2560" required></label><span aria-hidden="true">×</span><label for="baseHeight">Height<input id="baseHeight" type="number" min="1" max="32768" step="1" value="1440" required></label></div><p id="baseRatio" class="hint"></p></div>
+                        </div>
+                        <div class="input-group"><label for="targetRes">Target resolution</label><select id="targetRes"><option value="1080">1080p</option><option value="1440">1440p</option><option value="2160" selected>2160p / 4K</option><option value="custom">Custom</option></select>
+                            <div id="targetCustom" class="custom-resolution" hidden><div class="dimension-fields"><label for="targetWidth">Width<input id="targetWidth" type="number" min="1" max="32768" step="1" value="3840" required></label><span aria-hidden="true">×</span><label for="targetHeight">Height<input id="targetHeight" type="number" min="1" max="32768" step="1" value="2160" required></label></div><p id="targetRatio" class="hint"></p></div>
+                        </div>
                         <div class="input-group"><label for="manualScale">Multiplier</label><input type="number" id="manualScale" step="0.001" min="0.001"></div>
-                        <div class="input-group"><label for="aspectRatio">Screen aspect ratio</label><select id="aspectRatio"><option value="1.7777777777777777">16:9</option><option value="2.3333333333333335">21:9</option><option value="3.5555555555555554">32:9</option></select></div>
+                        <div class="input-group"><label for="aspectRatio">Preset aspect ratio</label><select id="aspectRatio"><option value="1.7777777777777777">16:9</option><option value="1.6">16:10</option><option value="2.3333333333333335">21:9</option><option value="3.5555555555555554">32:9</option></select></div>
                     </div>
                     <button id="processBtn" class="primary">Generate export</button>
-                    <p class="hint">Use the resolution this profile was made for.</p>
+                    <p id="resolutionStatus" class="status error" role="status" hidden></p>
+                    <p class="hint">Use the profile’s original size. Scaling follows height.</p>
                 </section>
                 <section class="card">
                     <h2><span class="step-number">3</span> Your export</h2>

@@ -28,6 +28,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .text-button { border: 0; padding: 3px 0; color: var(--accent); background: transparent; font-size: 12px; }
 .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
 .input-group { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.custom-resolution { min-width: 0; }
+.dimension-fields { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 4px; align-items: end; }
+.dimension-fields label { font-size: 11px; min-width: 0; }
+.dimension-fields input { margin-top: 5px; padding: 8px 4px; font-size: 12px; appearance: textfield; }
+.dimension-fields input::-webkit-inner-spin-button, .dimension-fields input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.dimension-fields span { padding-bottom: 9px; color: var(--dim); }
+.custom-resolution .hint { margin-top: 5px; }
 #manualScale { color: #f4cb88; font-weight: 600; }
 .status { color: var(--dim); font-size: 12px; line-height: 1.5; margin: 12px 0 0; overflow-wrap: anywhere; }
 .status.error { color: #ffaba8; }

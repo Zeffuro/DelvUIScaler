@@ -9,6 +9,9 @@
             const screenWidth = Math.round(size.height * aspect)
             return { ...size, width: screenWidth, x: (width - screenWidth) / 2, y: (height - size.height) / 2 }
         })
+        if (!screens.some(screen => screen.width === width && screen.height === height)) {
+            screens.push({ width, height, x: 0, y: 0, name: 'Custom', color: '#89baff' })
+        }
         const viewportWidth = Math.max(width, ...screens.map(screen => screen.width))
         const viewportHeight = Math.max(height, ...screens.map(screen => screen.height))
         return { screens, viewport: { x: (width - viewportWidth) / 2, y: (height - viewportHeight) / 2,
