@@ -36,6 +36,7 @@
             return this.active ? this.layout.viewport : { x: 0, y: 0, width, height }
         }
         draw() {
+            for (const node of this.preview.svg.querySelectorAll('[data-resolution]')) node.remove()
             const preview = this.preview, get = id => document.getElementById(id)
             get('resolutionLegend').hidden = !this.active
             if (!this.active) return

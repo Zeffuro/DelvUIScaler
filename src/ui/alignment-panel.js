@@ -73,6 +73,7 @@ class PreviewAlignmentPanel {
         return position
     }
     draw() {
+        for (const node of this.preview.svg.querySelectorAll('[data-reference], [data-guide]')) node.remove()
         const drawing = this.preview.drawing, reference = this.reference(), box = this.preview.svg.viewBox.baseVal
         if (reference) drawing.node('rect', { ...PreviewAlignment.bounds(reference), fill: 'none', stroke: '#89baff',
             'stroke-dasharray': '5 4', 'stroke-width': 1, 'vector-effect': 'non-scaling-stroke',

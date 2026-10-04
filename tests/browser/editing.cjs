@@ -12,8 +12,11 @@ module.exports = async function checkEditing(page, { select, exportProfile, scre
     assert.ok(await page.locator('#previewElement option').count() < allOptions / 4)
     const player = await select('Player Unit Frame')
     const selectedId = await page.inputValue('#previewElement')
-    const rect = element => element.locator('rect').first().evaluate(rect => ({ x: Number(rect.getAttribute('x')), y: Number(rect.getAttribute('y')),
-        width: Number(rect.getAttribute('width')), height: Number(rect.getAttribute('height')) }))
+    const rect = element => element.locator('rect').first().evaluate(rect => {
+        const matrix = rect.ownerSVGElement.getCTM().inverse().multiply(rect.getCTM())
+        const point = new DOMPoint(rect.x.baseVal.value, rect.y.baseVal.value).matrixTransform(matrix)
+        return { x: point.x, y: point.y, width: rect.width.baseVal.value, height: rect.height.baseVal.value }
+    })
     const center = rectangle => ({ x: rectangle.x + rectangle.width / 2, y: rectangle.y + rectangle.height / 2 })
     const screenCenter = () => page.locator('#previewSvg').evaluate(svg => ({ x: svg.viewBox.baseVal.width / 2, y: svg.viewBox.baseVal.height / 2 }))
     const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < .03, `${actual} must match ${expected}`)

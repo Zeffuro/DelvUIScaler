@@ -93,12 +93,46 @@ class ProfilePreview {
             charges: Number(get('dummyCharges').value), gauge: Number(get('dummyGauge').value), partyState: get('dummyPartyState').value,
             hasTarget: get('dummyHasTarget').checked, jobId: this.profile?.kind === 'DelvUI' ? PreviewState.jobs.find(job => job.name + 'Config' === this.job.value)?.jobId || 19 : Number(get('dummyJob').value),
             mousePosition: this.mousePosition && { x: this.mousePosition.x * this.factor(), y: this.mousePosition.y * this.factor() },
-            conditionIndex: Number(get('previewStyle').value), fontFamily: name => this.fonts.family(name), measureText: (text, size, family) => {
+            conditionIndex: Number(get('previewStyle').value), resolveFont: this.motion?.resolveFont,
+            fontFamily: name => this.fonts.family(name), measureText: (text, size, family) => {
+                const key = JSON.stringify([text, size, family])
+                if (this.motion?.widths.has(key)) return this.motion.widths.get(key)
                 this.measure.font = `${size}px ${JSON.stringify(family || 'sans-serif')}, sans-serif`
-                return this.measure.measureText(text).width
+                const width = this.measure.measureText(text).width
+                this.motion?.widths.set(key, width)
+                return width
             } }
     }
+    beginMotion() {
+        if (!this.renderedProfile) return
+        this.motion = { resolveFont: PreviewFonts.createResolver(this.renderedProfile), widths: new Map() }
+    }
+    renderMotion(path = null) {
+        if (!this.motion || !this.renderedProfile) return
+        if (path && this.view === 'scaled') {
+            const source = path.reduce((value, key) => value?.[key], this.profile)
+            const owner = path.slice(0, -1).reduce((value, key) => value[key], this.renderedProfile)
+            if (source === undefined) delete owner[path.at(-1)]
+            else {
+                owner[path.at(-1)] = structuredClone(source)
+                ConfigCodec.scaleRecursive(owner[path.at(-1)], this.factor())
+            }
+        }
+        this.model = PreviewModel.build(this.renderedProfile, this.model.width, this.model.height, this.options())
+        const selected = this.selected(), get = id => document.getElementById(id)
+        const focus = selected ? get('focusMode').value : 'all', editing = get('editPositions').checked, names = get('showNames').checked
+        const related = e => PreviewAlignment.related(e, selected)
+        this.drawing.sync(this.model.elements.filter(e => focus !== 'only' || related(e)), selected?.id, e => ({
+            editing, names, nameSize: this.model.width / 140,
+            dim: focus === 'dim' && !related(e), interactive: focus === 'all' || e.id === selected?.id
+        }))
+        this.alignment.draw()
+        this.resolutions.draw()
+        this.updateDetails(Boolean(this.renderedProfile))
+        this.updateInspector(true)
+    }
     render() {
+        this.motion = null
         const get = id => document.getElementById(id)
         const height = Number(get(this.view === 'original' ? 'baseRes' : 'targetRes').value)
         const width = Math.round(height * Number(get('aspectRatio').value))
@@ -135,13 +169,7 @@ class ProfilePreview {
         this.alignment.draw()
         this.resolutions.draw()
         get('previewEmpty').hidden = Boolean(profile)
-        get('elementDetails').textContent = selectedElement ?
-            `${selectedElement.name} · ${this.round(selectedElement.width)} × ${this.round(selectedElement.height)} px${selectedElement.font ? ` · ${selectedElement.font.family} ${this.round(selectedElement.fontSize)} px` : ''}${selectedElement.offscreen ? ' · outside screen' : ''}` :
-            'Select an element.'
-        const offscreen = this.model.elements.filter(e => e.offscreen && e.kind !== 'group').length
-        const count = this.model.elements.filter(e => e.kind !== 'group').length
-        get('previewSummary').textContent = this.profile && !profile ? 'Enter a positive multiplier to preview scaling.' : profile ?
-            `${count} elements${offscreen ? ` · ${offscreen} outside screen` : ''}` : ''
+        this.updateDetails(Boolean(profile))
         get('coverageSummary').textContent = `Missing settings (${this.model.skipped.length})`
         get('coverageNotes').hidden = !this.model.skipped.length
         const list = get('coverageList')
@@ -150,8 +178,19 @@ class ProfilePreview {
         get('dummyHealthValue').textContent = `${get('dummyHealth').value}%`
         this.fonts.render(this.profile)
         this.updateInspector()
+        if (this.interactions.drag) this.beginMotion()
     }
-    updateInspector() {
+    updateDetails(hasProfile) {
+        const selected = this.selected(), get = id => document.getElementById(id)
+        const details = selected ?
+            `${selected.name} · ${this.round(selected.width)} × ${this.round(selected.height)} px${selected.font ? ` · ${selected.font.family} ${this.round(selected.fontSize)} px` : ''}${selected.offscreen ? ' · outside screen' : ''}` : 'Select an element.'
+        const elements = this.model.elements.filter(e => e.kind !== 'group'), offscreen = elements.filter(e => e.offscreen).length
+        const summary = this.profile && !hasProfile ? 'Enter a positive multiplier to preview scaling.' : hasProfile ?
+            `${elements.length} elements${offscreen ? ` · ${offscreen} outside screen` : ''}` : ''
+        if (get('elementDetails').textContent !== details) get('elementDetails').textContent = details
+        if (get('previewSummary').textContent !== summary) get('previewSummary').textContent = summary
+    }
+    updateInspector(moving = false) {
         const get = id => document.getElementById(id), element = this.selected(), path = element?.editPath
         const editing = get('editPositions').checked && Boolean(path)
         const position = path && this.editor ? this.positionInView(path) : null
@@ -167,7 +206,7 @@ class ProfilePreview {
         get('redoEdit').disabled = !this.editor?.canRedo || Boolean(pendingScale)
         get('editStatus').textContent = this.editor?.changed.size ? `${this.editor.changed.size} edits` : ''
         get('positionNote').textContent = element?.note || (path ? 'Relative to its anchor.' : '')
-        this.alignment.update()
+        if (!moving) this.alignment.update()
     }
     round(number) { return Math.round(number * 100) / 100 }
 }

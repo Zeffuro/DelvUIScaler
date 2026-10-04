@@ -1,5 +1,5 @@
 class PreviewDrawing {
-    constructor(svg) { this.svg = svg }
+    constructor(svg) { this.svg = svg; this.elements = new Map() }
     node(tag, attrs = {}, text = null, parent = this.svg) {
         const element = document.createElementNS('http://www.w3.org/2000/svg', tag)
         for (const [key, value] of Object.entries(attrs)) element.setAttribute(key, value)
@@ -10,12 +10,14 @@ class PreviewDrawing {
     background(width, height, grid, spacing, viewport = { x: 0, y: 0, width, height }) {
         this.svg.setAttribute('viewBox', `${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`)
         this.svg.replaceChildren()
+        this.elements.clear()
         const defs = this.node('defs')
         const pattern = this.node('pattern', { id: 'grid', x: width / 2, y: height / 2,
             width: spacing.x, height: spacing.y, patternUnits: 'userSpaceOnUse' }, null, defs)
         this.node('path', { d: `M ${spacing.x} 0 L 0 0 0 ${spacing.y}`, fill: 'none', stroke: '#203043', 'stroke-width': 1 }, null, pattern)
         if (grid) this.node('rect', { ...viewport, fill: 'url(#grid)' })
         this.node('path', { d: `M ${width / 2} ${viewport.y} V ${viewport.y + viewport.height} M ${viewport.x} ${height / 2} H ${viewport.x + viewport.width}`, stroke: '#385068', 'stroke-dasharray': '6 8', 'stroke-width': 1, fill: 'none' })
+        this.layer = this.node('g', { 'data-scene': '' })
     }
     text(text, x, y, size, parent, attrs = {}) {
         return this.node('text', { x, y, 'font-size': size, 'font-family': 'sans-serif', fill: '#f0f5fb',
@@ -68,7 +70,7 @@ class PreviewDrawing {
         const group = this.node('g', { 'data-element': e.id, 'data-kind': e.kind, opacity: (e.disabled ? .35 : e.opacity ?? 1) * (options.dim ? .12 : 1),
             'pointer-events': options.interactive === false ? 'none' : 'auto',
             'data-blocked': String(options.interactive === false),
-            style: `cursor:${options.editing && e.editPath ? 'move' : 'pointer'}${e.desaturate ? ';filter:grayscale(1)' : ''}` })
+            style: `cursor:${options.editing && e.editPath ? 'move' : 'pointer'}${e.desaturate ? ';filter:grayscale(1)' : ''}` }, null, this.layer)
         this.node('title', {}, `${e.name}, ${Math.round(e.width)} × ${Math.round(e.height)} px`, group)
         const rect = { x: e.x, y: e.y, width: e.width, height: e.height }
         if (e.kind === 'text') {
@@ -97,6 +99,36 @@ class PreviewDrawing {
             fill: '#ffd88c', 'pointer-events': 'none' }, null, group)
         if (options.names && e.kind !== 'text' && e.kind !== 'group') {
             this.text(e.name, e.x, e.y - 6, options.nameSize, group)
+        }
+        this.elements.set(e.id, { group, x: e.x, y: e.y, signature: this.signature(e, selected, options) })
+        return group
+    }
+    signature(e, selected, options) {
+        const { x, y, offscreen, snapPoint, alignmentRect, ...appearance } = e
+        return JSON.stringify([appearance, selected, options, snapPoint && { x: snapPoint.x - x, y: snapPoint.y - y }])
+    }
+    sync(elements, selected, options) {
+        const present = new Set()
+        let previous = null
+        for (const e of elements) {
+            present.add(e.id)
+            const state = this.elements.get(e.id), settings = options(e)
+            let group = state?.group
+            if (!state || state.signature !== this.signature(e, e.id === selected, settings)) {
+                group = this.element(e, e.id === selected, settings)
+                if (state) state.group.replaceWith(group)
+            } else {
+                const dx = e.x - state.x, dy = e.y - state.y
+                if (dx || dy) group.setAttribute('transform', `translate(${dx} ${dy})`)
+                else group.removeAttribute('transform')
+            }
+            if (group.previousSibling !== previous) this.layer.insertBefore(group, previous ? previous.nextSibling : this.layer.firstChild)
+            previous = group
+        }
+        for (const [id, state] of this.elements) {
+            if (present.has(id)) continue
+            state.group.remove()
+            this.elements.delete(id)
         }
     }
 }

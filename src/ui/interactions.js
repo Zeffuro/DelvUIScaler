@@ -90,9 +90,15 @@ class PreviewInteractions {
         const point = this.point(event), factor = preview.factor()
         preview.mousePosition = { x: point.x / factor, y: point.y / factor }
         if (this.mouseFrame) return
-        this.mouseFrame = requestAnimationFrame(() => { this.mouseFrame = null; preview.render() })
+        this.mouseFrame = requestAnimationFrame(() => {
+            this.mouseFrame = null
+            if (!preview.motion) preview.beginMotion()
+            preview.renderMotion()
+        })
     }
     start(event) {
+        if (this.mouseFrame) cancelAnimationFrame(this.mouseFrame)
+        this.mouseFrame = null
         this.scroll.focus({ preventScroll: true })
         if (event.button === 1 || event.button === 0 && this.spaceHeld) {
             event.preventDefault()
@@ -110,12 +116,16 @@ class PreviewInteractions {
         const element = preview.selected()
         if (document.getElementById('editPositions').checked && element?.editPath && preview.editor) {
             event.preventDefault()
+            preview.beginMotion()
             this.drag = { pointer: event.pointerId, start: this.point(event), path: element.editPath,
                 position: preview.editor.position(element.editPath), displayed: preview.positionInView(element.editPath),
                 factor: preview.factor(), element: element.snapPoint || { x: element.x, y: element.y }, rect: PreviewAlignment.bounds(element),
                 targets: document.getElementById('smartGuides').checked ? preview.alignment.targets(element) : [] }
             preview.editor.beginTransaction()
             this.svg.setPointerCapture(event.pointerId)
+            preview.renderMotion()
+            preview.updateInspector()
+            return
         }
         preview.render()
     }
@@ -127,6 +137,15 @@ class PreviewInteractions {
         }
         const drag = this.drag
         if (!drag || drag.pointer !== event.pointerId) return
+        this.pendingMove = { clientX: event.clientX, clientY: event.clientY }
+        if (!this.dragFrame) this.dragFrame = requestAnimationFrame(() => this.flushMove())
+    }
+    flushMove() {
+        if (this.dragFrame) cancelAnimationFrame(this.dragFrame)
+        this.dragFrame = null
+        const event = this.pendingMove, drag = this.drag
+        this.pendingMove = null
+        if (!event || !drag) return
         const point = this.point(event)
         const axis = document.getElementById('moveAxis').value
         const x = drag.position.X + (point.x - drag.start.x) / drag.factor
@@ -138,8 +157,9 @@ class PreviewInteractions {
         }
         position = this.preview.alignment.drag(drag, { x: point.x - drag.start.x, y: point.y - drag.start.y }, position, axis,
             document.getElementById('snapGrid').checked)
-        if (this.preview.editor.setPosition(drag.path, position.X, position.Y, axis)) this.preview.edited()
-        else this.preview.render()
+        const changed = this.preview.editor.setPosition(drag.path, position.X, position.Y, axis)
+        this.preview.renderMotion(drag.path)
+        if (changed) document.dispatchEvent(new Event('profileedit'))
     }
     end() {
         if (this.pan) {
@@ -148,11 +168,13 @@ class PreviewInteractions {
             this.scroll.classList.remove('panning')
         }
         if (!this.drag) return
+        this.flushMove()
         const pointer = this.drag.pointer
         this.drag = null
         if (this.svg.hasPointerCapture(pointer)) this.svg.releasePointerCapture(pointer)
         this.preview.editor?.endTransaction()
         this.preview.alignment.guides = []
+        this.preview.motion = null
         this.preview.render()
     }
     releaseSpace() {

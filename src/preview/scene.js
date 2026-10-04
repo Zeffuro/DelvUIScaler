@@ -60,7 +60,7 @@
         const options = { showStatuses: true, statusCount: 8, hpPercent: 72, partyCount: 8, enemyCount: 3,
             dummyName: 'Alex Rivers', dummyTarget: 'Training Dummy', ...inputOptions }
         const scene = { width, height, options, center: { x: width / 2, y: height / 2 }, elements: [], skipped: [] }
-        const resolveFont = fonts.createResolver(profile)
+        const resolveFont = options.resolveFont || fonts.createResolver(profile)
         scene.util = { typeName, friendly, vec, add, anchor, topLeft, color, clamp, sampleText }
         scene.labelGeometry = (config, parent, cd = false, text = '') => {
             const font = resolveFont(config, cd), fontSize = Math.max(.1, font.fontSize)

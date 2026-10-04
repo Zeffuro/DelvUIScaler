@@ -175,3 +175,21 @@ test('game-font labels are recognized and invalid scaling fails without mutation
     for (const factor of [0, -1, NaN, Infinity]) assert.throws(() => fonts.scaleProfileFonts(profile, factor), /greater than zero/)
     assert.equal(profile.configs[0].FontID, 'jupiter-numeric-ffxiv_24')
 })
+
+test('scene accepts a reusable resolver and keeps ordinary resolution equivalent', () => {
+    const scene = require('../../src/preview/scene.js')
+    const profile = uiProfile(), config = profile.configs[1].Label
+    const parent = { x: 10, y: 20, width: 100, height: 30 }
+    const expected = scene.create(profile, 1920, 1080, {}).labelGeometry(config, parent, false, 'Alex')
+    const resolver = fonts.createResolver(profile)
+    const calls = []
+    const supplied = (value, cd) => { calls.push([value, cd]); return resolver(value, cd) }
+    const actual = scene.create(profile, 1920, 1080, { resolveFont: supplied }).labelGeometry(config, parent, false, 'Alex')
+    assert.deepEqual(actual, expected)
+    assert.deepEqual(calls, [[config, false]])
+    const isolated = scene.create({ kind: 'DelvUI' }, 1920, 1080, {
+        resolveFont: () => ({ fontSize: 13, family: 'Supplied' })
+    }).labelGeometry(config, parent, false, 'Alex')
+    assert.equal(isolated.font.fontSize, 13)
+    assert.equal(isolated.fontFamily, 'Supplied')
+})
