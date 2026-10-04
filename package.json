@@ -1,0 +1,11 @@
+{
+  "name": "delvui-profile-scaler",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node scripts/serve.cjs",
+    "dev": "node scripts/serve.cjs",
+    "test": "node --test tests/unit/*.test.cjs",
+    "test:browser": "node tests/browser/preview.cjs"
+  }
+}

@@ -1,0 +1,173 @@
+class ProfilePreview {
+    constructor() {
+        this.editor = null
+        this.view = 'original'
+        this.model = { elements: [], skipped: [] }
+        this.svg = document.getElementById('previewSvg')
+        this.picker = document.getElementById('previewElement')
+        this.job = document.getElementById('previewJob')
+        this.measure = document.createElement('canvas').getContext('2d')
+        this.fonts = new PreviewFontPanel(this)
+        const jobs = document.getElementById('dummyJob')
+        for (const job of PreviewState.jobs) jobs.add(new Option(PreviewModel.friendly(job.name), String(job.jobId)))
+        jobs.value = '19'
+        this.drawing = new PreviewDrawing(this.svg)
+        this.alignment = new PreviewAlignmentPanel(this)
+        this.interactions = new PreviewInteractions(this)
+        this.resolutions = new ResolutionBounds(this)
+        for (const id of ['showGrid', 'gridX', 'gridY', 'elementSearch', 'focusMode', 'showNames', 'showDisabled', 'previewJob', 'previewElement', 'showStatuses',
+            'dummyName', 'dummyTarget', 'dummyHealth', 'dummyStatusCount', 'dummyPartyCount', 'dummyEnemyCount', 'previewStyle',
+            'dummyState', 'dummyLevel', 'dummyCooldown', 'dummyCharges', 'dummyGauge', 'dummyPartyState', 'dummyJob', 'dummyHasTarget']) {
+            document.getElementById(id).addEventListener(id.startsWith('dummy') || id.startsWith('grid') || id === 'elementSearch' ? 'input' : 'change', () => this.render())
+        }
+        for (const view of ['original', 'scaled']) {
+            document.getElementById(view === 'original' ? 'viewOriginal' : 'viewScaled').addEventListener('click', () => {
+                this.interactions.end()
+                this.view = view
+                this.render()
+            })
+        }
+        for (const [id, axis] of [['gridX', 'x'], ['gridY', 'y']]) {
+            document.getElementById(id).addEventListener('change', event => {
+                event.target.value = this.grid()[axis]
+                this.render()
+            })
+        }
+    }
+    get profile() { return this.editor?.working || null }
+    factor() {
+        const value = this.view === 'original' ? 1 : Number(document.getElementById('manualScale').value)
+        return Number.isFinite(value) && value > 0 ? value : 1
+    }
+    selected() { return this.model.elements.find(element => element.id === this.picker.value) }
+    positionInView(path) {
+        const value = path.reduce((object, key) => object?.[key], this.renderedProfile)
+        return { X: Number(value?.X) || 0, Y: Number(value?.Y) || 0 }
+    }
+    grid() { return PreviewGrid.settings(document.getElementById('gridX').value, document.getElementById('gridY').value) }
+    scaleSettings() {
+        return Object.fromEntries(['baseRes', 'targetRes', 'manualScale'].map(id => [id, document.getElementById(id).value]))
+    }
+    exportProfile() { return ConfigCodec.scaled(this.profile, Number(document.getElementById('manualScale').value)) }
+    edited() {
+        this.render()
+        document.dispatchEvent(new Event('profileedit'))
+    }
+    setProfile(profile) {
+        this.interactions.end()
+        this.editor = profile ? new ProfileEditor(profile, this.scaleSettings()) : null
+        this.picker.value = ''
+        this.alignment.referenceId = ''
+        this.alignment.guides = []
+        document.getElementById('elementSearch').value = ''
+        document.getElementById('alignmentNote').textContent = ''
+        const selectedJob = this.job.value
+        this.job.replaceChildren(new Option('No job bars', ''))
+        for (const job of profile ? PreviewModel.jobs(profile) : []) this.job.add(new Option(PreviewModel.friendly(job), job))
+        if (Array.from(this.job.options).some(option => option.value === selectedJob) && selectedJob) this.job.value = selectedJob
+        else if (this.job.options.length > 1) this.job.selectedIndex = 1
+        document.getElementById('jobGroup').hidden = this.job.options.length <= 1
+        document.getElementById('profileKind').textContent = profile?.kind || 'No profile loaded'
+        const styles = document.getElementById('previewStyle')
+        styles.replaceChildren(new Option('Base', '-1'), new Option('From scene', '-2'))
+        let maxConditions = 0
+        function findConditions(value) {
+            if (!value || typeof value !== 'object') return
+            maxConditions = Math.max(maxConditions, value.StyleConditions?.Conditions?.length || 0)
+            Object.values(value).forEach(findConditions)
+        }
+        if (profile?.kind === 'DelvCD') findConditions(profile.configs)
+        for (let i = 0; i < maxConditions; i++) styles.add(new Option(`Condition ${i + 1}`, String(i)))
+        document.getElementById('styleGroup').hidden = maxConditions === 0
+        document.getElementById('dummyJobGroup').hidden = profile?.kind !== 'DelvCD'
+        document.getElementById('partyStateGroup').hidden = profile?.kind === 'DelvCD'
+        this.render()
+    }
+    options() {
+        const get = id => document.getElementById(id)
+        return { job: this.job.value, showDisabled: get('showDisabled').checked, showStatuses: get('showStatuses').checked,
+            dummyName: get('dummyName').value || 'Alex Rivers', dummyTarget: get('dummyTarget').value || 'Training Dummy',
+            hpPercent: Number(get('dummyHealth').value), statusCount: Number(get('dummyStatusCount').value),
+            partyCount: Number(get('dummyPartyCount').value), enemyCount: Number(get('dummyEnemyCount').value),
+            state: get('dummyState').value, level: Number(get('dummyLevel').value), cooldown: Number(get('dummyCooldown').value),
+            charges: Number(get('dummyCharges').value), gauge: Number(get('dummyGauge').value), partyState: get('dummyPartyState').value,
+            hasTarget: get('dummyHasTarget').checked, jobId: this.profile?.kind === 'DelvUI' ? PreviewState.jobs.find(job => job.name + 'Config' === this.job.value)?.jobId || 19 : Number(get('dummyJob').value),
+            mousePosition: this.mousePosition && { x: this.mousePosition.x * this.factor(), y: this.mousePosition.y * this.factor() },
+            conditionIndex: Number(get('previewStyle').value), fontFamily: name => this.fonts.family(name), measureText: (text, size, family) => {
+                this.measure.font = `${size}px ${JSON.stringify(family || 'sans-serif')}, sans-serif`
+                return this.measure.measureText(text).width
+            } }
+    }
+    render() {
+        const get = id => document.getElementById(id)
+        const height = Number(get(this.view === 'original' ? 'baseRes' : 'targetRes').value)
+        const width = Math.round(height * Number(get('aspectRatio').value))
+        const factor = Number(get('manualScale').value), validScale = Number.isFinite(factor) && factor > 0
+        let profile = this.profile
+        if (this.view === 'scaled') profile = profile && validScale ? ConfigCodec.scaled(profile, factor) : null
+        this.renderedProfile = profile
+        for (const view of ['original', 'scaled']) {
+            const button = get(view === 'original' ? 'viewOriginal' : 'viewScaled')
+            button.classList.toggle('active', view === this.view)
+            button.setAttribute('aria-pressed', String(view === this.view))
+        }
+        get('screenSize').textContent = `${width} × ${height} · ${this.view === 'original' ? 'source' : 'scaled'}`
+        const viewport = this.resolutions.viewport(width, height, Number(get('aspectRatio').value))
+        get('screenFrame').style.aspectRatio = `${viewport.width} / ${viewport.height}`
+        this.drawing.background(width, height, get('showGrid').checked, this.grid(), viewport)
+        this.model = profile ? PreviewModel.build(profile, width, height, this.options()) : { elements: [], skipped: [] }
+        const selected = this.picker.value
+        this.picker.replaceChildren(new Option('Select an element', ''))
+        const search = get('elementSearch').value.trim().toLowerCase().split(/\s+/)
+        for (const element of this.model.elements) {
+            if (element.id === selected || search.every(word => element.name.toLowerCase().includes(word))) this.picker.add(new Option(element.name, element.id))
+        }
+        this.picker.value = selected
+        const selectedElement = this.selected()
+        const focus = selectedElement ? get('focusMode').value : 'all'
+        for (const e of this.model.elements) {
+            const related = selectedElement && PreviewAlignment.related(e, selectedElement)
+            if (focus === 'only' && !related) continue
+            this.drawing.element(e, selectedElement?.id === e.id, { editing: get('editPositions').checked,
+                names: get('showNames').checked, nameSize: width / 140, dim: focus === 'dim' && !related,
+                interactive: focus === 'all' || e.id === selectedElement?.id })
+        }
+        this.alignment.draw()
+        this.resolutions.draw()
+        get('previewEmpty').hidden = Boolean(profile)
+        get('elementDetails').textContent = selectedElement ?
+            `${selectedElement.name} · ${this.round(selectedElement.width)} × ${this.round(selectedElement.height)} px${selectedElement.font ? ` · ${selectedElement.font.family} ${this.round(selectedElement.fontSize)} px` : ''}${selectedElement.offscreen ? ' · outside screen' : ''}` :
+            'Select an element.'
+        const offscreen = this.model.elements.filter(e => e.offscreen && e.kind !== 'group').length
+        const count = this.model.elements.filter(e => e.kind !== 'group').length
+        get('previewSummary').textContent = this.profile && !profile ? 'Enter a positive multiplier to preview scaling.' : profile ?
+            `${count} elements${offscreen ? ` · ${offscreen} outside screen` : ''}` : ''
+        get('coverageSummary').textContent = `Missing settings (${this.model.skipped.length})`
+        get('coverageNotes').hidden = !this.model.skipped.length
+        const list = get('coverageList')
+        list.replaceChildren()
+        for (const note of this.model.skipped) { const item = document.createElement('li'); item.textContent = note; list.append(item) }
+        get('dummyHealthValue').textContent = `${get('dummyHealth').value}%`
+        this.fonts.render(this.profile)
+        this.updateInspector()
+    }
+    updateInspector() {
+        const get = id => document.getElementById(id), element = this.selected(), path = element?.editPath
+        const editing = get('editPositions').checked && Boolean(path)
+        const position = path && this.editor ? this.positionInView(path) : null
+        get('positionX').value = position ? String(this.round(position.X)) : ''
+        get('positionY').value = position ? String(this.round(position.Y)) : ''
+        get('positionX').disabled = !editing || get('moveAxis').value === 'y'
+        get('snapSelected').disabled = !editing
+        get('positionY').disabled = !editing || get('moveAxis').value === 'x'
+        get('resetPosition').disabled = !this.editor?.changed.has(JSON.stringify(path))
+        get('resetAllPositions').disabled = !this.editor?.changed.size
+        const pendingScale = this.editor && Object.entries(this.editor.settings).some(([id, value]) => value !== get(id).value)
+        get('undoEdit').disabled = !this.editor?.canUndo && !pendingScale
+        get('redoEdit').disabled = !this.editor?.canRedo || Boolean(pendingScale)
+        get('editStatus').textContent = this.editor?.changed.size ? `${this.editor.changed.size} edits` : ''
+        get('positionNote').textContent = element?.note || (path ? 'Relative to its anchor.' : '')
+        this.alignment.update()
+    }
+    round(number) { return Math.round(number * 100) / 100 }
+}

@@ -3,242 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VIBECODED DelvUI/DelvCD Config Scaler</title>
-    <!-- Pako library for decompression -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-    <style>
-        :root {
-            --bg: #0f0f10;
-            --card: #161618;
-            --border: #2d2d30;
-            --text: #d4d4d4;
-            --text-dim: #888;
-            --accent: #4782ff;
-            --success: #28a745;
-            --warning: #ff9d00;
-            --code-green: #00ff41;
-        }
-
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            padding: 40px 20px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 850px;
-        }
-
-        header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 2rem;
-            letter-spacing: -0.5px;
-            color: #fff;
-        }
-
-        .description {
-            color: var(--text-dim);
-            margin-top: 8px;
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        }
-
-        .step-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 16px;
-        }
-
-        .step-number {
-            background: var(--accent);
-            color: white;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-size: 0.7rem;
-        }
-
-        textarea {
-            width: 100%;
-            height: 120px;
-            background: #000;
-            border: 1px solid var(--border);
-            color: var(--code-green);
-            font-family: 'Consolas', 'Monaco', monospace;
-            padding: 12px;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 13px;
-            transition: border-color 0.2s;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        .res-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr auto 1fr;
-            gap: 20px;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        label {
-            font-size: 0.8rem;
-            color: var(--text-dim);
-        }
-
-        select, input {
-            background: #252526;
-            border: 1px solid var(--border);
-            color: #fff;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.95rem;
-        }
-
-        .multiplier-box {
-            text-align: center;
-        }
-
-        .multiplier-val {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--warning);
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            border-radius: 6px;
-            border: none;
-            font-weight: bold;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: transform 0.1s, filter 0.2s;
-        }
-
-        button:active { transform: scale(0.98); }
-
-        #processBtn {
-            background: var(--accent);
-            color: white;
-        }
-
-        #copyBtn {
-            background: var(--success);
-            color: white;
-            margin-top: 12px;
-        }
-
-        .arrow {
-            font-size: 24px;
-            color: var(--border);
-            padding-top: 20px;
-        }
-
-        .footer {
-            text-align: center;
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            margin-top: 40px;
-        }
-    </style>
+    <title>DelvUI / DelvCD Profile Scaler & Preview</title>
+    <link rel="stylesheet" href="assets/css/app.css">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script defer src="src/preview/fonts.js"></script>
+    <script defer src="src/profile/codec.js"></script>
+    <script defer src="src/profile/editor.js"></script>
+    <script defer src="src/preview/job-data.js"></script>
+    <script defer src="src/preview/state.js"></script>
+    <script defer src="src/preview/scene.js"></script>
+    <script defer src="src/preview/adapters/delvui-extras.js"></script>
+    <script defer src="src/preview/adapters/delvui.js"></script>
+    <script defer src="src/preview/adapters/delvcd.js"></script>
+    <script defer src="src/preview/model.js"></script>
+    <script defer src="src/ui/grid.js"></script>
+    <script defer src="src/ui/alignment.js"></script>
+    <script defer src="src/ui/alignment-panel.js"></script>
+    <script defer src="src/ui/draw.js"></script>
+    <script defer src="src/ui/interactions.js"></script>
+    <script defer src="src/ui/font-panel.js"></script>
+    <script defer src="src/ui/resolution-bounds.js"></script>
+    <script defer src="src/ui/preview.js"></script>
+    <script defer src="src/ui/preferences.js"></script>
+    <script defer src="src/ui/profile-files.js"></script>
+    <script defer src="src/examples/profiles.js"></script>
+    <script defer src="src/app.js"></script>
 </head>
 <body>
-
-    <div class="container">
+    <main class="container">
         <header>
-            <h1>VIBECODED DelvUI/DelvCD Config Scaler</h1>
-            <p class="description">Upscale or downscale your UI profiles between resolutions</p>
+            <p class="eyebrow">FFXIV PROFILE TOOLS</p>
+            <h1>DelvUI / DelvCD preview</h1>
+            <p class="description">Preview, move, scale.</p>
         </header>
-        
-        <!-- STEP 1 -->
-        <div class="card">
-            <div class="step-label">
-                <span class="step-number">1</span> Input Config
+        <div class="workspace">
+            <div class="settings">
+                <section class="card profile-input" id="profileDrop">
+                    <h2><span class="step-number">1</span> Your profile</h2>
+                    <label for="inputStr">DelvUI or DelvCD export string</label>
+                    <textarea id="inputStr" spellcheck="false" placeholder="Paste a profile or individual element export…"></textarea>
+                    <div class="button-row"><button id="previewBtn" class="primary">Load preview</button><button id="clearBtn" class="secondary">Clear</button></div>
+                    <div class="file-row"><label class="small-button file-upload">Open file<input id="profileFile" type="file" accept=".delvui,.delvcd,.txt" class="sr-only"></label><span>or drop a profile here</span></div>
+                    <div class="demo-row"><span>Try an example</span><button id="demoUI" class="text-button">DelvUI</button><button id="demoCD" class="text-button">DelvCD</button></div>
+                    <p id="inputStatus" class="status" role="status" aria-live="polite">Your profile stays in this browser.</p>
+                </section>
+                <section class="card">
+                    <h2><span class="step-number">2</span> Scale settings</h2>
+                    <div class="res-grid">
+                        <div class="input-group"><label for="baseRes">Original resolution</label><select id="baseRes"><option value="1080">1080p</option><option value="1440" selected>1440p</option><option value="2160">2160p / 4K</option></select></div>
+                        <div class="input-group"><label for="targetRes">Target resolution</label><select id="targetRes"><option value="1080">1080p</option><option value="1440">1440p</option><option value="2160" selected>2160p / 4K</option></select></div>
+                        <div class="input-group"><label for="manualScale">Multiplier</label><input type="number" id="manualScale" step="0.001" min="0.001"></div>
+                        <div class="input-group"><label for="aspectRatio">Screen aspect ratio</label><select id="aspectRatio"><option value="1.7777777777777777">16:9</option><option value="2.3333333333333335">21:9</option><option value="3.5555555555555554">32:9</option></select></div>
+                    </div>
+                    <button id="processBtn" class="primary">Generate export</button>
+                    <p class="hint">Use the resolution this profile was made for.</p>
+                </section>
+                <section class="card">
+                    <h2><span class="step-number">3</span> Your export</h2>
+                    <label class="sr-only" for="outputStr">Scaled export string</label>
+                    <textarea id="outputStr" readonly spellcheck="false" placeholder="Generate an export…"></textarea>
+                    <div class="button-row"><button id="copyBtn" class="secondary" disabled>Copy</button><button id="downloadBtn" class="secondary" disabled>Download</button></div>
+                    <p id="outputStatus" class="status" role="status" aria-live="polite"></p>
+                </section>
             </div>
-            <textarea id="inputStr" placeholder="Paste your DelvUI or DelvCD export string here (DelvUI starts with |||)..."></textarea>
-        </div>
-
-        <!-- STEP 2 -->
-        <div class="card">
-            <div class="step-label">
-                <span class="step-number">2</span> Scaling Settings
-            </div>
-            <div class="res-grid">
-                <div class="input-group">
-                    <label>Original Resolution</label>
-                    <select id="baseRes">
-                        <option value="1080">1080p (FHD)</option>
-                        <option value="1440" selected>1440p (QHD)</option>
-                        <option value="2160">2160p (4K)</option>
-                    </select>
+            <section class="card preview-card" aria-labelledby="previewHeading">
+                <div class="preview-heading"><div><p class="eyebrow">LAYOUT PREVIEW</p><h2 id="previewHeading">Preview</h2></div><span id="profileKind" class="badge">No profile loaded</span></div>
+                <div class="preview-toolbar"><div class="segmented" role="group" aria-label="Preview resolution"><button id="viewOriginal" class="active" aria-pressed="true">Source</button><button id="viewScaled" aria-pressed="false">Scaled</button></div><label class="resolution-toggle"><input id="showResolutions" type="checkbox"> Resolution bounds</label><div class="history-controls"><button id="undoEdit" class="small-button" title="Undo (Ctrl+Z)" disabled>Undo</button><button id="redoEdit" class="small-button" title="Redo (Ctrl+Shift+Z)" disabled>Redo</button></div><span id="screenSize" class="screen-size"></span></div>
+                <div id="resolutionLegend" class="resolution-legend" hidden><p id="resolutionCaption"></p><div id="resolutionSizes"></div></div>
+                <div class="preview-stage">
+                    <div class="canvas-panel">
+                        <div class="screen-scroll" id="screenScroll" tabindex="0" aria-label="Preview canvas"><div id="screenFrame" class="screen-frame"><svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Profile layout preview"></svg><div id="previewEmpty" class="preview-empty"><span class="empty-cross">＋</span><strong>Load a profile to start.</strong><span>Paste an export or try an example.</span></div></div></div>
+                        <div class="preview-options">
+                            <label><input type="checkbox" id="showGrid" checked> Grid</label>
+                            <label><input type="checkbox" id="showNames"> Element names</label>
+                            <label><input type="checkbox" id="showDisabled"> Include hidden / disabled</label>
+                            <label class="zoom-label" for="previewZoom">Zoom <input id="previewZoom" type="range" min="100" max="800" step="1" value="100"><span id="zoomValue">100%</span></label><button id="fitZoom" class="small-button">Fit</button>
+                        </div>
+                        <div class="grid-controls">
+                            <label title="Align the element's corner to the grid. Nameplate groups use the marked health or name corner."><input type="checkbox" id="snapGrid"> Snap to grid</label>
+                            <label for="gridX">Grid X (px) <input id="gridX" type="number" min="1" max="1000" step="1" value="20"></label>
+                            <label for="gridY">Grid Y (px) <input id="gridY" type="number" min="1" max="1000" step="1" value="20"></label>
+                            <button id="snapSelected" class="small-button" disabled>Snap selected</button>
+                        </div>
+                        <p class="hint">Scroll to zoom · Space + drag to pan</p>
+                    </div>
+                    <aside class="element-panel" aria-label="Element editing">
+                        <div class="inspect-row"><div class="input-group" id="jobGroup" hidden><label for="previewJob">DelvUI job</label><select id="previewJob"></select></div><div class="input-group" id="styleGroup" hidden><label for="previewStyle">DelvCD appearance</label><select id="previewStyle"><option value="-1">Base appearance</option></select></div><div class="input-group element-picker"><label for="previewElement">Element</label><input id="elementSearch" type="text" placeholder="Find an element…" aria-label="Find an element"><select id="previewElement"><option value="">Select an element</option></select></div></div>
+                        <p id="elementDetails" class="element-details">Select an element.</p>
+                        <div class="focus-controls"><select id="focusMode" aria-label="Element visibility"><option value="all">All elements</option><option value="dim">Dim others</option><option value="only">Selected only</option></select><button id="focusView" class="small-button" disabled>Focus view</button><label><input id="smartGuides" type="checkbox" checked> Smart guides</label></div>
+                        <div class="edit-toolbar"><label><input type="checkbox" id="editPositions"> Edit positions</label><button id="resetAllPositions" class="small-button" disabled>Reset all positions</button></div>
+                        <details class="alignment-controls" open><summary>Align</summary>
+                            <div class="reference-controls"><span id="referenceName">Reference: Screen</span><button id="setReference" class="small-button" disabled>Use selected</button><button id="clearReference" class="small-button" disabled>Screen</button></div>
+                            <div class="alignment-buttons"><button class="small-button" data-align="left" disabled>Left</button><button class="small-button" data-align="centerX" disabled>Center X</button><button class="small-button" data-align="right" disabled>Right</button><button class="small-button" data-align="top" disabled>Top</button><button class="small-button" data-align="centerY" disabled>Center Y</button><button class="small-button" data-align="bottom" disabled>Bottom</button><button class="small-button" data-align="mirrorX" disabled>Mirror X</button><button class="small-button" data-align="mirrorY" disabled>Mirror Y</button></div>
+                            <p id="alignmentNote" class="hint" role="status"></p>
+                        </details>
+                        <div class="position-grid">
+                            <div class="input-group"><label for="moveAxis">Movement</label><select id="moveAxis"><option value="free">Both axes</option><option value="x">Horizontal only</option><option value="y">Vertical only</option></select></div>
+                            <div class="input-group"><label for="positionX">Position X</label><input id="positionX" type="number" step="1" disabled></div>
+                            <div class="input-group"><label for="positionY">Position Y</label><input id="positionY" type="number" step="1" disabled></div>
+                            <button id="resetPosition" class="small-button" disabled>Reset element</button>
+                        </div>
+                        <p id="positionNote" class="hint">Select an element to adjust its position.</p>
+                        <p class="hint key-hint">Arrow keys move · Shift moves 10×</p>
+                        <p id="editStatus" class="status" role="status">Positions match the imported profile.</p>
+                    </aside>
                 </div>
-                <div class="input-group">
-                    <label>Target Resolution</label>
-                    <select id="targetRes">
-                        <option value="1080">1080p (FHD)</option>
-                        <option value="1440">1440p (QHD)</option>
-                        <option value="2160" selected>2160p (4K)</option>
-                    </select>
-                </div>
-                <div class="arrow">→</div>
-                <div class="input-group multiplier-box">
-                    <label>Multiplier</label>
-                    <input type="number" id="manualScale" step="0.001" style="text-align: center; color: var(--warning); font-weight: bold;">
-                </div>
-            </div>
-            <button id="processBtn">Apply Scaling</button>
+                <p id="previewSummary" class="status" role="status" aria-live="polite"></p>
+                <details class="dummy-settings" open><summary>Scene</summary><div class="dummy-grid">
+                    <div class="input-group"><label for="dummyName">Character name</label><input id="dummyName" type="text" value="Alex Rivers" maxlength="80"></div>
+                    <div class="input-group"><label for="dummyTarget">Target name</label><input id="dummyTarget" type="text" value="Training Dummy" maxlength="80"></div>
+                    <label class="health-control" for="dummyHealth">Health / fill <input id="dummyHealth" type="range" min="0" max="100" value="72"><span id="dummyHealthValue">72%</span></label>
+                    <label class="status-toggle"><input id="showStatuses" type="checkbox" checked> Show dummy statuses</label>
+                    <div class="input-group"><label for="dummyStatusCount">Statuses per list</label><input id="dummyStatusCount" type="number" min="0" max="30" value="8"></div>
+                    <div class="input-group"><label for="dummyPartyCount">Party members</label><input id="dummyPartyCount" type="number" min="1" max="8" value="8"></div>
+                    <div class="input-group"><label for="dummyEnemyCount">Enemies</label><input id="dummyEnemyCount" type="number" min="1" max="8" value="3"></div>
+                    <div class="input-group"><label for="dummyState">State</label><select id="dummyState"><option value="layout">Layout</option><option value="combat">Combat / duty</option><option value="idle">Idle</option><option value="pvp">PvP</option><option value="crafting">Crafting</option><option value="gathering">Gathering</option><option value="island">Island</option><option value="saucer">Gold Saucer</option><option value="performing">Performing</option></select></div>
+                    <div class="input-group"><label for="dummyLevel">Level</label><input id="dummyLevel" type="number" min="1" max="100" value="100"></div>
+                    <div class="input-group"><label for="dummyCooldown">Timer (s)</label><input id="dummyCooldown" type="number" min="0" max="7200" value="12"></div>
+                    <div class="input-group"><label for="dummyCharges">Stacks / charges</label><input id="dummyCharges" type="number" min="0" max="10" value="3"></div>
+                    <div class="input-group"><label for="dummyGauge">Gauge (%)</label><input id="dummyGauge" type="number" min="0" max="100" value="50"></div>
+                    <div class="input-group" id="partyStateGroup"><label for="dummyPartyState">Party status</label><select id="dummyPartyState"><option value="normal">Normal</option><option value="raise">Raise</option><option value="invuln">Invulnerability</option><option value="cleanse">Cleanse</option><option value="all">All</option></select></div>
+                    <div class="input-group" id="dummyJobGroup" hidden><label for="dummyJob">Job</label><select id="dummyJob"></select></div>
+                    <label><input id="dummyHasTarget" type="checkbox" checked> Target present</label>
+                </div></details>
+                <details id="fontChecks" class="coverage" open hidden><summary id="fontSummary">Font scaling</summary>
+                    <div id="fontTools" class="font-tools"><label for="fontFamily">Show</label><select id="fontFamily" aria-label="Font family"></select><label class="font-review"><input id="fontIssuesOnly" type="checkbox"> Needs review</label></div>
+                    <div id="fontWorkspace" class="font-workspace">
+                        <div id="fontCompare" class="font-detail" hidden>
+                            <div class="font-selection"><strong id="fontCompareName"></strong><span id="fontCheckResult" class="font-check"></span></div>
+                            <div class="font-comparison">
+                                <div class="font-sample-card"><div class="font-sample-heading"><span>Before</span><strong id="fontSourceSize"></strong></div><div class="font-sample-viewport"><p id="fontSourceSample"></p></div></div>
+                                <div class="font-sample-card"><div class="font-sample-heading"><span>After scaling</span><strong id="fontScaledSize"></strong></div><div class="font-sample-viewport"><p id="fontScaledSample"></p></div></div>
+                            </div>
+                            <div class="font-proof"><p id="fontExpected"></p><span>Actual pixel sizes</span></div>
+                            <div class="input-group"><label for="fontSampleText">Sample text</label><input id="fontSampleText" type="text" placeholder="Text from the profile" maxlength="160"></div>
+                            <div class="font-file-controls"><div><span class="font-file-label">Preview font</span><p id="fontLoadStatus" role="status" aria-live="polite">Browser fallback</p></div><label id="fontUploadLabel" class="small-button font-upload">Load matching font<input id="fontFile" type="file" accept=".ttf,.otf,.woff,.woff2" class="sr-only"></label><button id="clearFont" class="small-button" hidden>Clear</button></div>
+                            <p class="hint font-preview-note">Font files affect the preview only.</p>
+                            <p id="fontReason" class="hint" hidden></p>
+                        </div>
+                        <div class="font-table"><table><thead><tr><th>Font</th><th>Before</th><th>After</th><th>Labels</th><th>Size check</th></tr></thead><tbody id="fontRows"></tbody></table></div>
+                    </div>
+                    <p id="fontEmpty" class="hint" hidden></p>
+                </details>
+                <details id="coverageNotes" class="coverage" hidden><summary id="coverageSummary">Missing settings</summary><ul id="coverageList"></ul></details>
+            </section>
         </div>
-
-        <!-- STEP 3 -->
-        <div class="card">
-            <div class="step-label">
-                <span class="step-number">3</span> Result
-            </div>
-            <textarea id="outputStr" readonly placeholder="Your scaled config will appear here..."></textarea>
-            <button id="copyBtn">Copy to Clipboard</button>
-        </div>
-
-        <div class="footer">
-            DelvUI/DelvCD Scaler Tool • Built for FFXIV
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+        <footer>DelvUI / DelvCD Scaler · Built for FFXIV</footer>
+    </main>
 </body>
 </html>
