@@ -120,7 +120,9 @@
         for (const registry of registries(profile)) {
             const replacements = Object.create(null)
             const entries = Object.entries(registry.value.Fonts)
-            if (!cd) entries.sort(([a], [b]) => Number(uiDefaults.has(b)) - Number(uiDefaults.has(a)))
+            // Newtonsoft reads dictionary metadata only before its entries.
+            if (!cd) entries.sort(([a], [b]) => Number(b.startsWith('$')) - Number(a.startsWith('$')) ||
+                Number(uiDefaults.has(b)) - Number(uiDefaults.has(a)))
             for (const [oldKey, data] of entries) {
                 if (!fontData(data)) { replacements[oldKey] = data; continue }
                 const sourceKey = cd ? runtimeKey(data) : oldKey
