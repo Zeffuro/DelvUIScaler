@@ -1,6 +1,6 @@
 (function (root) {
     const defaults = { showGrid: true, showNames: false, showDisabled: false, snapGrid: false, smartGuides: true, showResolutions: false,
-        gridX: 20, gridY: 20, previewZoom: 100, moveAxis: 'free', focusMode: 'all', aspectRatio: '1.7777777777777777' }
+        gridX: 20, gridY: 20, previewZoom: 100, moveAxis: 'free', focusMode: 'all', wheelMode: 'zoom', aspectRatio: '1.7777777777777777' }
     function normalize(value) {
         const result = { ...defaults }
         if (!value || typeof value !== 'object') return result
@@ -14,6 +14,7 @@
         const zoom = Number(value.previewZoom)
         if (Number.isFinite(zoom)) result.previewZoom = Math.round(Math.max(100, Math.min(800, zoom)))
         for (const [key, values] of [['moveAxis', ['free', 'x', 'y']], ['focusMode', ['all', 'dim', 'only']],
+            ['wheelMode', ['zoom', 'scroll']],
             ['aspectRatio', ['1.7777777777777777', '1.6', '2.3333333333333335', '3.5555555555555554']]]) {
             if (values.includes(value[key])) result[key] = value[key]
         }

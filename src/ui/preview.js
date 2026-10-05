@@ -8,6 +8,7 @@ class ProfilePreview {
         this.job = document.getElementById('previewJob')
         this.measure = document.createElement('canvas').getContext('2d')
         this.fonts = new PreviewFontPanel(this)
+        this.auditPanel = new ScaleAuditPanel()
         const jobs = document.getElementById('dummyJob')
         for (const job of PreviewState.jobs) jobs.add(new Option(PreviewModel.friendly(job.name), String(job.jobId)))
         jobs.value = '19'
@@ -18,7 +19,8 @@ class ProfilePreview {
         for (const id of ['showGrid', 'gridX', 'gridY', 'elementSearch', 'focusMode', 'showNames', 'showDisabled', 'previewJob', 'previewElement', 'showStatuses',
             'dummyName', 'dummyTarget', 'dummyHealth', 'dummyStatusCount', 'dummyPartyCount', 'dummyEnemyCount', 'previewStyle',
             'dummyState', 'dummyLevel', 'dummyCooldown', 'dummyCharges', 'dummyGauge', 'dummyPartyState', 'dummyJob', 'dummyHasTarget']) {
-            document.getElementById(id).addEventListener(id.startsWith('dummy') || id.startsWith('grid') || id === 'elementSearch' ? 'input' : 'change', () => this.render())
+            const continuous = id.startsWith('dummy') || id.startsWith('grid') || id === 'elementSearch'
+            document.getElementById(id).addEventListener(continuous ? 'input' : 'change', () => continuous ? this.scheduleRender() : this.render())
         }
         for (const view of ['original', 'scaled']) {
             document.getElementById(view === 'original' ? 'viewOriginal' : 'viewScaled').addEventListener('click', () => {
@@ -46,11 +48,27 @@ class ProfilePreview {
     }
     grid() { return PreviewGrid.settings(document.getElementById('gridX').value, document.getElementById('gridY').value) }
     scaleSettings() {
-        return Object.fromEntries(['baseRes', 'targetRes', 'baseWidth', 'baseHeight', 'targetWidth', 'targetHeight', 'manualScale'].map(id => [id, document.getElementById(id).value]))
+        return Object.fromEntries(['baseRes', 'targetRes', 'baseWidth', 'baseHeight', 'targetWidth', 'targetHeight', 'manualScale', 'scaleMode'].map(id => [id, document.getElementById(id).value]))
+    }
+    scaledProfile() {
+        const factor = Number(document.getElementById('manualScale').value)
+        if (!this.profile || !Number.isFinite(factor) || factor <= 0) return null
+        if (this.scaleCache?.editor !== this.editor || this.scaleCache.revision !== this.editor.revision || this.scaleCache.factor !== factor) {
+            const audit = { scaled: [], preserved: [], unknownNumeric: [] }
+            this.scaleCache = { editor: this.editor, revision: this.editor.revision, factor, profile: ConfigCodec.scaled(this.profile, factor, audit), audit }
+        }
+        return this.scaleCache.profile
+    }
+    scaleAudit() {
+        if (!this.scaledProfile()) return null
+        this.scaleCache.audit ||= ProfileScalePolicy.inspect(this.profile, this.scaleCache.factor)
+        return this.scaleCache.audit
     }
     exportProfile() {
         if (!ScreenResolutions.read('baseRes') || !ScreenResolutions.read('targetRes')) throw new Error('Use whole-pixel sizes from 1 to 32768.')
-        return ConfigCodec.scaled(this.profile, Number(document.getElementById('manualScale').value))
+        const profile = this.scaledProfile()
+        if (!profile) throw new Error('Enter a positive multiplier.')
+        return profile
     }
     edited() {
         this.render()
@@ -59,6 +77,7 @@ class ProfilePreview {
     setProfile(profile) {
         this.interactions.end()
         this.editor = profile ? new ProfileEditor(profile, this.scaleSettings()) : null
+        this.scaleCache = null
         this.picker.value = ''
         this.alignment.referenceId = ''
         this.alignment.guides = []
@@ -118,7 +137,11 @@ class ProfilePreview {
             if (source === undefined) delete owner[path.at(-1)]
             else {
                 owner[path.at(-1)] = structuredClone(source)
-                ConfigCodec.scaleRecursive(owner[path.at(-1)], this.factor())
+                ConfigCodec.scaleRecursive(owner[path.at(-1)], this.factor(), null, ProfileScalePolicy.contextAt(this.profile, path))
+            }
+            if (this.scaleCache?.profile === this.renderedProfile) {
+                this.scaleCache.revision = this.editor.revision
+                this.scaleCache.audit = null
             }
         }
         this.model = PreviewModel.build(this.renderedProfile, this.model.width, this.model.height, this.options())
@@ -134,7 +157,12 @@ class ProfilePreview {
         this.updateDetails(Boolean(this.renderedProfile))
         this.updateInspector(true)
     }
+    scheduleRender() {
+        if (!this.renderFrame) this.renderFrame = requestAnimationFrame(() => this.render())
+    }
     render() {
+        if (this.renderFrame) cancelAnimationFrame(this.renderFrame)
+        this.renderFrame = null
         this.motion = null
         const get = id => document.getElementById(id)
         const screen = ScreenResolutions.read(this.view === 'original' ? 'baseRes' : 'targetRes')
@@ -143,7 +171,7 @@ class ProfilePreview {
         if (screen) this.screenSizes[this.view] = screen
         const factor = Number(get('manualScale').value), validScale = Number.isFinite(factor) && factor > 0
         let profile = this.profile
-        if (this.view === 'scaled') profile = profile && validScale ? ConfigCodec.scaled(profile, factor) : null
+        if (this.view === 'scaled') profile = profile && validScale ? this.scaledProfile() : null
         if (!screen) profile = null
         this.renderedProfile = profile
         for (const view of ['original', 'scaled']) {
@@ -183,6 +211,7 @@ class ProfilePreview {
         for (const note of this.model.skipped) { const item = document.createElement('li'); item.textContent = note; list.append(item) }
         get('dummyHealthValue').textContent = `${get('dummyHealth').value}%`
         this.fonts.render(this.profile)
+        this.auditPanel.render(this)
         this.updateInspector()
         if (this.interactions.drag) this.beginMotion()
     }

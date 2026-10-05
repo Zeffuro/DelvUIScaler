@@ -18,6 +18,7 @@ module.exports = async function checkResolutions(browser, screenshots) {
     try {
         await page.goto(`http://127.0.0.1:${server.address().port}/DelvUIScaler/`, { waitUntil: 'networkidle' })
         await page.click('#demoUI')
+        await page.waitForFunction(() => document.getElementById('inputStatus').classList.contains('success'))
         const selectPlayer = async () => {
             const id = await page.locator('#previewElement option').evaluateAll(options => options.find(option => option.text === 'Player Unit Frame').value)
             await page.selectOption('#previewElement', id)
@@ -25,6 +26,7 @@ module.exports = async function checkResolutions(browser, screenshots) {
         }
         const exportProfile = async () => {
             await page.click('#processBtn')
+            await page.waitForFunction(() => /Ready/.test(document.getElementById('outputStatus').textContent) || document.getElementById('outputStatus').classList.contains('error'))
             return page.evaluate(() => ConfigCodec.decode(document.getElementById('outputStr').value))
         }
         const viewport = () => page.locator('#previewSvg').evaluate(svg => {
@@ -65,6 +67,7 @@ module.exports = async function checkResolutions(browser, screenshots) {
         assert.ok(Math.abs((await rect(await selectPlayer())).x) < .01, 'Screen alignment uses the real screen, not the expanded viewport')
         await page.click('#resetAllPositions')
         await page.fill('#gridX', '26')
+        await page.evaluate(() => new Promise(requestAnimationFrame))
         await page.check('#snapGrid')
         await page.fill('#positionX', '-355')
         await page.locator('#positionX').press('Tab')
@@ -111,6 +114,7 @@ module.exports = async function checkResolutions(browser, screenshots) {
         assert.equal(await page.inputValue('#inputStr'), '')
         await page.setViewportSize({ width: 390, height: 844 })
         await page.click('#demoCD')
+        await page.waitForFunction(() => document.getElementById('inputStatus').classList.contains('success'))
         await page.locator('#screenScroll').screenshot({ path: path.join(screenshots, 'resolution-bounds-mobile.png') })
         assert.equal(await page.locator('[data-resolution]').count(), 3)
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))

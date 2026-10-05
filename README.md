@@ -8,6 +8,6 @@ Scroll to zoom. Space + drag pans. Enable **Edit positions** to drag, align or n
 
 **Source / Scaled** switches layouts. **Resolution bounds** overlays centered 1080p, 1440p and 4K screens. **Scene** changes sample data. **Font scaling** compares text sizes. Loaded fonts affect only the preview.
 
-GitHub Pages publishes from `main`. For local development, run `npm start` and open `http://127.0.0.1:8767`, or open `index.html` directly. Pako loads from a CDN.
+GitHub Pages publishes from `main`. For local development, run `npm start` and open `http://127.0.0.1:8767`. All runtime assets are local.
 
-`npm test` runs unit checks. Optional `npm run test:browser` needs Playwright and Edge (`TEST_BROWSER=chrome` for Chrome).
+`npm test` runs unit checks. For browser checks, run `npm ci`, `npx playwright install chromium`, then `npm run test:browser`. Use `TEST_ENGINE=firefox` or `webkit` to check another installed engine.

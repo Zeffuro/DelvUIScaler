@@ -163,3 +163,5 @@ footer { text-align: center; color: #75869c; font-size: 12px; margin-top: 32px; 
 @media (max-width: 800px) { body { padding: 24px 16px; } .workspace { display: flex; flex-direction: column; } .settings, .preview-card { width: 100%; } .preview-card { order: -1; } .preview-heading h2 { font-size: 18px; } }
 @media (max-width: 1050px) { .element-panel .position-grid { grid-template-columns: 1fr 1fr; } .dummy-grid { grid-template-columns: 1fr 1fr; } .status-toggle { grid-column: 1 / -1; } }
 @media (max-width: 420px) { .screen-size { font-size: 10px; } .element-panel .inspect-row { flex-direction: column; } .segmented button { padding: 7px 10px; } .dummy-grid { grid-template-columns: 1fr 1fr; } .health-control { grid-column: 1 / -1; } .history-controls { margin-left: 0; } .font-tools { flex-wrap: wrap; } }
+.desaturated { filter: grayscale(1); }
+#exportAuditUnknown { max-height: 12rem; overflow: auto; overflow-wrap: anywhere; }

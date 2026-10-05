@@ -9,11 +9,12 @@ module.exports = async function checkEditing(page, { select, exportProfile, scre
     await page.uncheck('#snapGrid')
     const allOptions = await page.locator('#previewElement option').count()
     await page.fill('#elementSearch', 'player unit frame')
+    await page.evaluate(() => new Promise(requestAnimationFrame))
     assert.ok(await page.locator('#previewElement option').count() < allOptions / 4)
     const player = await select('Player Unit Frame')
     const selectedId = await page.inputValue('#previewElement')
     const rect = element => element.locator('rect').first().evaluate(rect => {
-        const matrix = rect.ownerSVGElement.getCTM().inverse().multiply(rect.getCTM())
+        const matrix = rect.ownerSVGElement.getScreenCTM().inverse().multiply(rect.getScreenCTM())
         const point = new DOMPoint(rect.x.baseVal.value, rect.y.baseVal.value).matrixTransform(matrix)
         return { x: point.x, y: point.y, width: rect.width.baseVal.value, height: rect.height.baseVal.value }
     })
@@ -51,6 +52,7 @@ module.exports = async function checkEditing(page, { select, exportProfile, scre
     await page.click('#viewOriginal')
     await page.uncheck('#snapGrid')
     await page.fill('#elementSearch', '')
+    await page.evaluate(() => new Promise(requestAnimationFrame))
     await select('Player Unit Frame')
     await page.click('#setReference')
     const target = await select('Target Unit Frame')

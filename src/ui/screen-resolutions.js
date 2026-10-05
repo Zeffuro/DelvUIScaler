@@ -14,7 +14,14 @@
         while (b) [a, b] = [b, a % b]
         return `${width / a}:${height / a}`
     }
+    function scaleFactor(source, target, mode = 'height', manual = 1) {
+        if (mode === 'manual') return Number(manual)
+        if (!source || !target) return null
+        const x = target.width / source.width, y = target.height / source.height
+        return mode === 'width' ? x : mode === 'fit' ? Math.min(x, y) : mode === 'fill' ? Math.max(x, y) : y
+    }
     class ScreenResolutions {
+        static factor = scaleFactor
         static read(id) {
             const get = key => document.getElementById(key).value, prefix = id === 'baseRes' ? 'base' : 'target'
             return dimensions(get(id), get(prefix + 'Width'), get(prefix + 'Height'), get('aspectRatio'))
@@ -47,8 +54,10 @@
             get('resolutionStatus').hidden = valid
             get('processBtn').disabled = !valid
             get('aspectRatio').disabled = get('baseRes').value === 'custom' && get('targetRes').value === 'custom'
+            const source = ScreenResolutions.read('baseRes'), target = ScreenResolutions.read('targetRes')
+            get('aspectHint').hidden = !source || !target || Math.abs(source.aspect - target.aspect) < .001
         }
     }
-    if (typeof module !== 'undefined') module.exports = { dimensions, ratio }
+    if (typeof module !== 'undefined') module.exports = { dimensions, ratio, scaleFactor }
     else root.ScreenResolutions = ScreenResolutions
 })(globalThis)

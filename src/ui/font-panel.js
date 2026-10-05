@@ -35,14 +35,18 @@ class PreviewFontPanel {
         this.errors.delete(name)
         this.compare()
         try {
-            const face = await new FontFace('PreviewFont' + this.nextFont++, await file.arrayBuffer()).load()
+            if (file.size > ProfileLimits.fontBytes) throw new Error('Font exceeds the 16 MiB limit.')
+            if (!/\.(ttf|otf|woff2?)$/i.test(file.name)) throw new Error('Choose a TTF, OTF, WOFF or WOFF2 font.')
+            const bytes = await file.arrayBuffer()
+            if (this.requests.get(name) !== request) return
+            const face = await new FontFace('PreviewFont' + this.nextFont++, bytes).load()
             if (this.requests.get(name) !== request) return
             const previous = this.loaded.get(name)
             if (previous) document.fonts.delete(previous.face)
             document.fonts.add(face)
             this.loaded.set(name, { face, file: file.name })
-        } catch {
-            if (this.requests.get(name) === request) this.errors.set(name, 'Could not load that font.')
+        } catch (error) {
+            if (this.requests.get(name) === request) this.errors.set(name, error.message?.startsWith('Font exceeds') || error.message?.startsWith('Choose a ') ? error.message : 'Could not load that font.')
         }
         if (this.requests.get(name) === request) {
             this.requests.delete(name)
@@ -51,8 +55,8 @@ class PreviewFontPanel {
     }
     clear() {
         const name = this.groups[this.selected]?.row.source.family, font = this.loaded.get(name)
-        if (!font) return
-        document.fonts.delete(font.face)
+        if (!font && !this.requests.has(name) && !this.errors.has(name)) return
+        if (font) document.fonts.delete(font.face)
         this.loaded.delete(name)
         this.errors.delete(name)
         this.requests.delete(name)
@@ -74,7 +78,7 @@ class PreviewFontPanel {
         }
         if (this.cache?.profile !== profile || this.cache.factor !== factor) {
             const previousPath = this.groups[this.selected]?.row.pathString
-            this.cache = { profile, factor, audit: PreviewFonts.audit(profile, factor, ConfigCodec.scaled(profile, factor)) }
+            this.cache = { profile, factor, audit: PreviewFonts.audit(profile, factor, this.preview.scaledProfile()) }
             const groups = new Map()
             for (const row of this.cache.audit.rows) {
                 const key = [row.source.key, row.source.family, row.source.fontSize, row.actual?.fontSize, row.problem, row.source.approximate].join('|')
@@ -154,7 +158,7 @@ class PreviewFontPanel {
             this.requests.has(name) ? 'Loading…' : uploaded?.file || 'Browser fallback'
         get('fontUploadLabel').title = 'Use a local font for ' + name
         get('fontFile').disabled = this.requests.has(name)
-        get('clearFont').hidden = !uploaded
+        get('clearFont').hidden = !uploaded && !this.requests.has(name) && !this.errors.has(name)
         const reason = row.source.missingRegistry || row.actual?.missingRegistry ? 'Font reference missing from the profile.' :
             !row.actual ? 'This label is missing from the export.' : row.actual.family !== name ? 'Export uses a different font.' :
             row.problem ? 'Expected ' + this.size(row.expectedExportSize) + ' px in the export.' : row.source.approximate ?

@@ -9,12 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
         status: (message, kind, id = 'inputStatus') => status(id, message, kind),
         exported: () => ({ text: get('outputStr').value, kind: preview.profile?.kind })
     })
-    let loadedInput = '', loadTimer
+    const codec = new ProfileCodecService()
+    let loadedInput = '', loadTimer, loadTicket = 0, exportTicket = 0, exporting = false
     function status(id, message, kind = '') {
         get(id).textContent = message
         get(id).className = `status ${kind}`
     }
     function invalidateOutput() {
+        exportTicket++
+        if (exporting) codec.cancel()
+        exporting = false
         get('outputStr').value = ''
         get('copyBtn').disabled = true
         get('downloadBtn').disabled = true
@@ -22,6 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function clearPreview() {
         clearTimeout(loadTimer)
+        loadTicket++
+        codec.cancel()
         get('inputStr').value = ''
         loadedInput = ''
         preview.setProfile(null)
@@ -29,8 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function updateFactor(record = true) {
         const base = ScreenResolutions.read('baseRes'), target = ScreenResolutions.read('targetRes')
-        const factor = base && target ? target.height / base.height : null
-        get('manualScale').value = factor ? factor.toFixed(factor < .001 ? 6 : 3) : ''
+        const factor = ScreenResolutions.factor(base, target, get('scaleMode').value, get('manualScale').value)
+        if (get('scaleMode').value !== 'manual') get('manualScale').value = factor ? factor.toFixed(factor < .001 ? 6 : 3) : ''
         settingsChanged(record)
     }
     function settingsChanged(record = false) {
@@ -38,20 +44,27 @@ document.addEventListener('DOMContentLoaded', () => {
         resolutions.refresh()
         if (record) preview.editor?.setSettings(preview.scaleSettings())
         invalidateOutput()
-        preview.render()
+        if (record) preview.render()
+        else preview.scheduleRender()
     }
-    function loadPreview() {
+    async function loadPreview() {
         clearTimeout(loadTimer)
         invalidateOutput()
-        const input = get('inputStr').value.trim()
+        const rawInput = get('inputStr').value, input = rawInput.trim()
         loadedInput = ''
+        const ticket = ++loadTicket
+        codec.cancel()
+        if (!input) { preview.setProfile(null); status('inputStatus', 'Your profile stays in this browser.'); return null }
+        status('inputStatus', 'Reading profile…')
         try {
-            const profile = ConfigCodec.decode(input)
+            const profile = await codec.decode(rawInput)
+            if (ticket !== loadTicket || input !== get('inputStr').value.trim()) return null
             preview.setProfile(profile)
             loadedInput = input
             status('inputStatus', `${profile.kind} · ${profile.configs.length} sections`, 'success')
             return profile
         } catch (error) {
+            if (ticket !== loadTicket || error.code === 'CANCELLED') return null
             preview.setProfile(null)
             status('inputStatus', error.message, input ? 'error' : '')
             return null
@@ -59,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     get('inputStr').addEventListener('input', () => {
         files.cancel()
+        loadTicket++
+        codec.cancel()
         invalidateOutput()
         loadedInput = ''
         preview.setProfile(null)
@@ -73,23 +88,30 @@ document.addEventListener('DOMContentLoaded', () => {
         status('inputStatus', 'Your profile stays in this browser.')
     })
     for (const [id, kind] of [['demoUI', 'DelvUI'], ['demoCD', 'DelvCD']]) {
-        get(id).addEventListener('click', () => {
+        get(id).addEventListener('click', async () => {
             files.cancel()
             try {
                 get('inputStr').value = ConfigCodec.encode(DemoProfiles[kind])
-                loadPreview()
-                status('inputStatus', `${kind} example`, 'success')
+                const profile = await loadPreview()
+                if (profile) status('inputStatus', `${kind} example`, 'success')
             } catch (error) {
-                status('inputStatus', 'The compression library could not load. Check your connection and reload.', 'error')
+                status('inputStatus', 'Could not load the example. Reload this page.', 'error')
             }
         })
     }
-    get('processBtn').addEventListener('click', () => {
-        const profile = loadedInput === get('inputStr').value.trim() && preview.profile ? preview.profile : loadPreview()
+    get('processBtn').addEventListener('click', async () => {
+        const profile = loadedInput === get('inputStr').value.trim() && preview.profile ? preview.profile : await loadPreview()
         if (!profile) return
+        invalidateOutput()
+        const ticket = exportTicket, input = loadedInput, editor = preview.editor, revision = editor.revision
+        const factor = Number(get('manualScale').value)
         try {
-            const scaled = preview.exportProfile()
-            const exportString = ConfigCodec.encode(scaled)
+            if (!ScreenResolutions.read('baseRes') || !ScreenResolutions.read('targetRes')) throw new Error('Use whole-pixel sizes from 1 to 32768.')
+            exporting = true
+            status('outputStatus', 'Generating…')
+            const exportString = await codec.encode(preview.profile, factor)
+            if (ticket !== exportTicket || editor !== preview.editor || revision !== editor.revision || input !== get('inputStr').value.trim()) return
+            exporting = false
             get('outputStr').value = exportString
             get('copyBtn').disabled = false
             get('downloadBtn').disabled = false
@@ -97,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             preview.render()
             status('outputStatus', `Ready · ${profile.configs.length} sections`, 'success')
         } catch (error) {
+            if (ticket !== exportTicket || error.code === 'CANCELLED') return
             invalidateOutput()
             status('outputStatus', error.message, 'error')
         }
@@ -121,9 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
         get(id).addEventListener('input', () => updateFactor(false))
         get(id).addEventListener('change', () => updateFactor())
     }
-    get('manualScale').addEventListener('input', () => settingsChanged())
+    get('scaleMode').addEventListener('change', () => updateFactor())
+    get('manualScale').addEventListener('input', () => { get('scaleMode').value = 'manual'; settingsChanged() })
     get('manualScale').addEventListener('change', () => settingsChanged(true))
-    get('aspectRatio').addEventListener('change', () => { resolutions.refresh(); preview.render() })
+    get('aspectRatio').addEventListener('change', () => updateFactor())
     document.addEventListener('profileedit', invalidateOutput)
     function history(direction) {
         preview.interactions.end()

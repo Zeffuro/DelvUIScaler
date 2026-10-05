@@ -25,6 +25,7 @@
             this.redoStack = []
             this.transaction = null
             this.transactionDepth = 0
+            this.revision = 0
         }
         get canUndo() { return this.undoStack.length > 0 }
         get canRedo() { return this.redoStack.length > 0 }
@@ -47,6 +48,7 @@
             return true
         }
         record(path, before) {
+            this.revision++
             const command = this.transaction || { positions: new Map(), settings: null }
             const id = JSON.stringify(path), existing = command.positions.get(id)
             command.positions.set(id, { path: [...path], before: existing?.before || before, after: snapshot(this.working, path) })
@@ -67,6 +69,7 @@
             else this.changed.delete(id)
         }
         apply(command, direction) {
+            if (command.positions.length) this.revision++
             const patches = direction === 'before' ? [...command.positions].reverse() : command.positions
             for (const patch of patches) {
                 const owner = getPath(this.working, patch.path.slice(0, -1)), state = patch[direction]

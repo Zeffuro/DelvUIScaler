@@ -17,22 +17,25 @@ module.exports = async function checkMotion(browser, url) {
         if (process.env.DELVUI_SAMPLE) {
             await page.fill('#inputStr', fs.readFileSync(process.env.DELVUI_SAMPLE, 'utf8'))
             await page.click('#previewBtn')
+            await page.waitForFunction(() => document.getElementById('inputStatus').classList.contains('success'))
         } else await page.click('#demoUI')
+        await page.waitForFunction(() => document.getElementById('inputStatus').classList.contains('success'))
         await page.check('#editPositions')
         await page.uncheck('#snapGrid')
         await page.uncheck('#smartGuides')
-        const geometry = () => [...motionPreview.drawing.elements].map(([id, state]) => {
+        await page.evaluate(() => { window.motionGeometry = () => [...motionPreview.drawing.elements].map(([id, state]) => {
             const box = state.group.getBBox()
-            const matrix = state.group.ownerSVGElement.getCTM().inverse().multiply(state.group.getCTM())
+            const matrix = state.group.ownerSVGElement.getScreenCTM().inverse().multiply(state.group.getScreenCTM())
             const point = new DOMPoint(box.x, box.y).matrixTransform(matrix)
             const empty = box.width === 0 && box.height === 0
             return { id, x: empty ? 0 : point.x, y: empty ? 0 : point.y, width: box.width, height: box.height }
         })
+        })
         for (const view of ['original', 'scaled']) {
             await page.click(view === 'original' ? '#viewOriginal' : '#viewScaled')
-            const report = await page.evaluate(async geometrySource => {
+            const report = await page.evaluate(async () => {
                 const p = motionPreview, get = id => document.getElementById(id)
-                const geometry = eval(`(${geometrySource})`)
+                const geometry = window.motionGeometry
                 const selected = p.model.elements.find(e => e.name === 'Player Unit Frame')
                 p.picker.value = selected.id
                 p.render()
@@ -69,7 +72,7 @@ module.exports = async function checkMotion(browser, url) {
                 return { scaleCalls, fontCalls, stablePanels, preserved, total: nodes.length, fast, full,
                     model, fullModel, restored: JSON.stringify(initial) === JSON.stringify(p.profile),
                     median: timings[22], p95: timings[42] }
-            }, geometry.toString())
+            })
             assert.equal(report.scaleCalls, 0, 'Drag frames must not scale the full profile')
             assert.equal(report.fontCalls, 0, 'Drag frames must not rebuild the font panel')
             assert.equal(report.stablePanels, true)
@@ -111,8 +114,8 @@ module.exports = async function checkMotion(browser, url) {
         assert.ok(Math.abs(burst.final - burst.expected) < .01)
         assert.equal(burst.pending, false)
         assert.equal(burst.history, 1)
-        const cd = await page.evaluate(geometrySource => {
-            const p = motionPreview, geometry = eval(`(${geometrySource})`), failures = []
+        const cd = await page.evaluate(() => {
+            const p = motionPreview, geometry = window.motionGeometry, failures = []
             for (const view of ['original', 'scaled']) {
                 p.view = view
                 p.setProfile(structuredClone(DemoProfiles.DelvCD))
@@ -136,13 +139,14 @@ module.exports = async function checkMotion(browser, url) {
                 }
             }
             return failures
-        }, geometry.toString())
+        })
         assert.deepEqual(cd, [], 'Moving DelvCD children must resize enclosing group bounds correctly')
         await page.evaluate(() => {
             const p = motionPreview
             p.profile.configs.push({ $type: 'DelvUI.Config.GCDIndicatorConfig', AnchorToMouse: true })
         })
         await page.fill('#manualScale', '0')
+        await page.evaluate(() => new Promise(requestAnimationFrame))
         await page.locator('#screenScroll').dispatchEvent('pointermove', { clientX: 400, clientY: 400, pointerId: 5 })
         await page.evaluate(() => new Promise(requestAnimationFrame))
         assert.deepEqual(errors, [])

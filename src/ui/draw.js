@@ -70,7 +70,7 @@ class PreviewDrawing {
         const group = this.node('g', { 'data-element': e.id, 'data-kind': e.kind, opacity: (e.disabled ? .35 : e.opacity ?? 1) * (options.dim ? .12 : 1),
             'pointer-events': options.interactive === false ? 'none' : 'auto',
             'data-blocked': String(options.interactive === false),
-            style: `cursor:${options.editing && e.editPath ? 'move' : 'pointer'}${e.desaturate ? ';filter:grayscale(1)' : ''}` }, null, this.layer)
+            cursor: options.editing && e.editPath ? 'move' : 'pointer', class: e.desaturate ? 'desaturated' : '' }, null, this.layer)
         this.node('title', {}, `${e.name}, ${Math.round(e.width)} × ${Math.round(e.height)} px`, group)
         const rect = { x: e.x, y: e.y, width: e.width, height: e.height }
         if (e.kind === 'text') {

@@ -74,6 +74,7 @@ class PreviewInteractions {
         this.scroll.focus({ preventScroll: true })
     }
     wheel(event) {
+        if (document.getElementById('wheelMode').value === 'scroll' && !event.ctrlKey) return
         event.preventDefault()
         if (this.drag || this.pan) return
         const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.scroll.clientHeight : 1

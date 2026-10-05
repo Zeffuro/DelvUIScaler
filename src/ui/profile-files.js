@@ -35,9 +35,14 @@ class ProfileFiles {
         this.begin()
         this.status(`Opening ${file.name}…`)
         try {
+            if (file.size > ProfileLimits.sourceBytes) {
+                this.status('Profile exceeds the 8 MiB input limit.', 'error')
+                return
+            }
             const text = await file.text()
             if (request !== this.pending) return
-            if (this.load(text)) this.name = file.name
+            const loaded = await this.load(text)
+            if (request === this.pending && loaded) this.name = file.name
         } catch {
             if (request === this.pending) this.status('Could not read this file.', 'error')
         }

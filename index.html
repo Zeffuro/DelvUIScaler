@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' blob: data:; font-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <title>DelvUI / DelvCD Profile Scaler & Preview</title>
     <link rel="stylesheet" href="assets/css/app.css">
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script defer src="assets/vendor/pako-2.1.0.min.js"></script>
     <script defer src="src/preview/fonts.js"></script>
+    <script defer src="src/profile/limits.js"></script>
+    <script defer src="src/profile/scale-schema.js"></script>
+    <script defer src="src/profile/scale-policy.js"></script>
     <script defer src="src/profile/codec.js"></script>
+    <script defer src="src/profile/codec-service.js"></script>
     <script defer src="src/profile/editor.js"></script>
     <script defer src="src/preview/job-data.js"></script>
     <script defer src="src/preview/state.js"></script>
@@ -22,6 +27,7 @@
     <script defer src="src/ui/draw.js"></script>
     <script defer src="src/ui/interactions.js"></script>
     <script defer src="src/ui/font-panel.js"></script>
+    <script defer src="src/ui/scale-audit.js"></script>
     <script defer src="src/ui/resolution-bounds.js"></script>
     <script defer src="src/ui/screen-resolutions.js"></script>
     <script defer src="src/ui/preview.js"></script>
@@ -57,12 +63,14 @@
                         <div class="input-group"><label for="targetRes">Target resolution</label><select id="targetRes"><option value="1080">1080p</option><option value="1440">1440p</option><option value="2160" selected>2160p / 4K</option><option value="custom">Custom</option></select>
                             <div id="targetCustom" class="custom-resolution" hidden><div class="dimension-fields"><label for="targetWidth">Width<input id="targetWidth" type="number" min="1" max="32768" step="1" value="3840" required></label><span aria-hidden="true">×</span><label for="targetHeight">Height<input id="targetHeight" type="number" min="1" max="32768" step="1" value="2160" required></label></div><p id="targetRatio" class="hint"></p></div>
                         </div>
+                        <div class="input-group"><label for="scaleMode">Scale by</label><select id="scaleMode"><option value="height">Height</option><option value="width">Width</option><option value="fit">Fit</option><option value="fill">Fill</option><option value="manual">Manual</option></select></div>
                         <div class="input-group"><label for="manualScale">Multiplier</label><input type="number" id="manualScale" step="0.001" min="0.001"></div>
                         <div class="input-group"><label for="aspectRatio">Preset aspect ratio</label><select id="aspectRatio"><option value="1.7777777777777777">16:9</option><option value="1.6">16:10</option><option value="2.3333333333333335">21:9</option><option value="3.5555555555555554">32:9</option></select></div>
                     </div>
                     <button id="processBtn" class="primary">Generate export</button>
                     <p id="resolutionStatus" class="status error" role="status" hidden></p>
-                    <p class="hint">Use the profile’s original size. Scaling follows height.</p>
+                    <p class="hint">Use the profile’s original size.</p>
+                    <p id="aspectHint" class="hint" hidden>Different aspect ratios. Check the edges.</p>
                 </section>
                 <section class="card">
                     <h2><span class="step-number">3</span> Your export</h2>
@@ -70,6 +78,7 @@
                     <textarea id="outputStr" readonly spellcheck="false" placeholder="Generate an export…"></textarea>
                     <div class="button-row"><button id="copyBtn" class="secondary" disabled>Copy</button><button id="downloadBtn" class="secondary" disabled>Download</button></div>
                     <p id="outputStatus" class="status" role="status" aria-live="polite"></p>
+                    <details id="exportAudit" class="coverage" hidden><summary id="exportAuditSummary">Scale check</summary><p id="exportAuditNote" class="hint"></p><ul id="exportAuditUnknown"></ul></details>
                 </section>
             </div>
             <section class="card preview-card" aria-labelledby="previewHeading">
@@ -84,6 +93,7 @@
                             <label><input type="checkbox" id="showNames"> Element names</label>
                             <label><input type="checkbox" id="showDisabled"> Include hidden / disabled</label>
                             <label class="zoom-label" for="previewZoom">Zoom <input id="previewZoom" type="range" min="100" max="800" step="1" value="100"><span id="zoomValue">100%</span></label><button id="fitZoom" class="small-button">Fit</button>
+                            <label for="wheelMode">Wheel <select id="wheelMode"><option value="zoom">Zoom</option><option value="scroll">Scroll</option></select></label>
                         </div>
                         <div class="grid-controls">
                             <label title="Align the element's corner to the grid. Nameplate groups use the marked health or name corner."><input type="checkbox" id="snapGrid"> Snap to grid</label>
@@ -91,7 +101,7 @@
                             <label for="gridY">Grid Y (px) <input id="gridY" type="number" min="1" max="1000" step="1" value="20"></label>
                             <button id="snapSelected" class="small-button" disabled>Snap selected</button>
                         </div>
-                        <p class="hint">Scroll to zoom · Space + drag to pan</p>
+                        <p class="hint">Space + drag to pan · Ctrl + scroll to zoom</p>
                     </div>
                     <aside class="element-panel" aria-label="Element editing">
                         <div class="inspect-row"><div class="input-group" id="jobGroup" hidden><label for="previewJob">DelvUI job</label><select id="previewJob"></select></div><div class="input-group" id="styleGroup" hidden><label for="previewStyle">DelvCD appearance</label><select id="previewStyle"><option value="-1">Base appearance</option></select></div><div class="input-group element-picker"><label for="previewElement">Element</label><input id="elementSearch" type="text" placeholder="Find an element…" aria-label="Find an element"><select id="previewElement"><option value="">Select an element</option></select></div></div>
